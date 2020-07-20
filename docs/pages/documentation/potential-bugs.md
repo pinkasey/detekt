@@ -72,7 +72,7 @@ override fun equals(other: Any?): Boolean {
 
 ```kotlin
 override fun equals(other: Any?): Boolean {
-    return this == other
+    return this === other
 }
 ```
 
@@ -159,6 +159,42 @@ fun apiCall(): String = System.getProperty("propertyName")
 }
 ```
 
+### IgnoredReturnValue
+
+This rule warns on instances where a function, annotated with either `@CheckReturnValue` or `@CheckResult`,
+returns a value but that value is not used in any way. The Kotlin compiler gives no warning for this scenario
+normally so that's the rationale behind this rule.
+
+fun returnsValue() = 42
+fun returnsNoValue() {}
+
+**Severity**: Defect
+
+**Debt**: 20min
+
+#### Configuration options:
+
+* ``restrictToAnnotatedMethods`` (default: ``true``)
+
+   if the rule should check only annotated methods.
+
+* ``returnValueAnnotations`` (default: ``['*.CheckReturnValue', '*.CheckResult']``)
+
+   List of glob patterns to be used as inspection annotation
+
+#### Noncompliant Code:
+
+```kotlin
+    returnsValue()
+```
+
+#### Compliant Code:
+
+```kotlin
+    if (42 == returnsValue()) {}
+    val x = returnsValue()
+```
+
 ### ImplicitDefaultLocale
 
 Prefer passing [java.util.Locale] explicitly than using implicit default value when formatting
@@ -192,6 +228,39 @@ val str: String = getString()
 str.toUpperCase(Locale.US)
 str.toLowerCase(Locale.US)
 ```
+
+### ImplicitUnitReturnType
+
+Functions using expression statements have an implicit return type.
+Changing the type of the expression accidentally, changes the functions return type.
+This may lead to backward incompatibility.
+Use a block statement to make clear this function will never return a value.
+
+**Severity**: Defect
+
+**Debt**: 5min
+
+#### Configuration options:
+
+* ``allowExplicitReturnType`` (default: ``true``)
+
+   if functions with explicit 'Unit' return type should be allowed
+
+
+<noncompliant>
+fun errorProneUnit() = println("Hello Unit")
+fun errorProneUnitWithParam(param: String) = param.run { println(this) }
+fun String.errorProneUnitWithReceiver() = run { println(this) }
+</noncompliant>
+
+<compliant>
+fun blockStatementUnit() {
+    // code
+}
+
+// explicit Unit is compliant by default; can be configured to enforce block statement
+fun safeUnitReturn(): Unit = println("Hello Unit")
+</compliant>
 
 ### InvalidRange
 

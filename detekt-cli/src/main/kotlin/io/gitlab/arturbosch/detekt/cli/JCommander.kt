@@ -2,56 +2,50 @@ package io.gitlab.arturbosch.detekt.cli
 
 import com.beust.jcommander.JCommander
 import com.beust.jcommander.ParameterException
-import java.io.PrintStream
+import java.nio.file.Files
 
-@Suppress("detekt.SpreadOperator", "detekt.ThrowsCount")
-inline fun <reified T : Args> parseArguments(
-    args: Array<out String>,
-    outPrinter: PrintStream,
-    errorPrinter: PrintStream,
-    validateCli: T.(MessageCollector) -> Unit = {}
-): T {
-    val cli = T::class.java.declaredConstructors
-        .firstOrNull()
-        ?.newInstance() as? T
-        ?: error("Could not create Args object for class ${T::class.java}")
+fun parseArguments(args: Array<out String>): CliArgs {
+    val cli = CliArgs()
 
-    val jCommander = JCommander()
-
-    jCommander.addObject(cli)
+    val jCommander = JCommander(cli)
     jCommander.programName = "detekt"
 
     try {
+        @Suppress("detekt.SpreadOperator")
         jCommander.parse(*args)
     } catch (ex: ParameterException) {
-        errorPrinter.println("${ex.message}\n")
-        jCommander.usage(outPrinter)
-        throw HandledArgumentViolation()
+        throw HandledArgumentViolation(ex.message, jCommander.usageAsString())
     }
 
     if (cli.help) {
-        jCommander.usage(outPrinter)
-        throw HelpRequest()
+        throw HelpRequest(jCommander.usageAsString())
     }
 
-    val violations = mutableListOf<String>()
-    validateCli(cli, object : MessageCollector {
-        override fun plusAssign(msg: String) {
-            violations += msg
-        }
-    })
-    if (violations.isNotEmpty()) {
-        violations.forEach(errorPrinter::println)
-        errorPrinter.println()
-        jCommander.usage(outPrinter)
-        throw HandledArgumentViolation()
-    }
-
-    return cli
+    return cli.apply { validate(jCommander) }
 }
 
-fun JCommander.usage(outPrinter: PrintStream) {
+private fun JCommander.usageAsString(): String {
     val usage = StringBuilder()
     this.usageFormatter.usage(usage)
-    outPrinter.println(usage.toString())
+    return usage.toString()
+}
+
+private fun CliArgs.validate(jCommander: JCommander) {
+    val violations = StringBuilder()
+
+    if (createBaseline && baseline == null) {
+        violations.appendln("Creating a baseline.xml requires the --baseline parameter to specify a path.")
+    }
+
+    if (!createBaseline && baseline != null) {
+        if (Files.notExists(checkNotNull(baseline))) {
+            violations.appendln("The file specified by --baseline should exist '$baseline'.")
+        } else if (!Files.isRegularFile(checkNotNull(baseline))) {
+            violations.appendln("The path specified by --baseline should be a file '$baseline'.")
+        }
+    }
+
+    if (violations.isNotEmpty()) {
+        throw HandledArgumentViolation(violations.toString(), jCommander.usageAsString())
+    }
 }

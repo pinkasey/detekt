@@ -20,11 +20,8 @@ open class DetektExtension(project: Project) : CodeQualityExtension() {
     val customReportsDir: File?
         get() = reportsDir
 
-    val reports = DetektReports(project)
+    val reports = DetektReports()
     fun reports(configure: Action<DetektReports>) = configure.execute(reports)
-
-    val idea = IdeaExtension()
-    fun idea(configure: Action<IdeaExtension>) = configure.execute(idea)
 
     var input: ConfigurableFileCollection =
         project.configurableFileCollection().from(DEFAULT_SRC_DIR_JAVA, DEFAULT_SRC_DIR_KOTLIN)

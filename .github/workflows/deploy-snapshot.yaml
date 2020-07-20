@@ -9,20 +9,21 @@ jobs:
   gradle:
     runs-on: ubuntu-latest
     if: ${{ !contains(github.event.head_commit.message, 'ci skip') }}
+    env:
+      GRADLE_OPTS: -Dorg.gradle.daemon=false
     steps:
     - name: Checkout Repo
       uses: actions/checkout@v2
 
-    - name: Cache Gradle Caches
-      uses: actions/cache@v1
+    - name: Cache Gradle Folders
+      uses: actions/cache@v2
       with:
-        path: ~/.gradle/caches/
-        key: cache-gradle-deploy-snapshot
-    - name: Cache Gradle Wrapper
-      uses: actions/cache@v1
-      with:
-        path: ~/.gradle/wrapper/
-        key: cache-wrapper-deploy-snapshot
+        path: |
+          ~/.gradle/caches/
+          ~/.gradle/wrapper/
+        key: cache-gradle-${{ hashFiles('detekt-bom/build.gradle.kts') }}
+        restore-keys: |
+          cache-gradle-
 
     - name: Setup Java
       uses: actions/setup-java@v1
@@ -38,8 +39,3 @@ jobs:
         BINTRAY_API_KEY: ${{ secrets.BINTRAY_API_KEY }}
       run: ./gradlew artifactoryPublish -Dsnapshot=true --stacktrace
       if: ${{ github.repository == 'detekt/detekt'}}
-
-    # We stop gradle at the end to make sure the cache folders
-    # don't contain any lock files and are free to be cached.
-    - name: Stop Gradle
-      run: ./gradlew --stop

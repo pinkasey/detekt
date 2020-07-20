@@ -32,15 +32,19 @@ import io.gitlab.arturbosch.detekt.formatting.wrappers.SpacingAroundColon
 import io.gitlab.arturbosch.detekt.formatting.wrappers.SpacingAroundComma
 import io.gitlab.arturbosch.detekt.formatting.wrappers.SpacingAroundCurly
 import io.gitlab.arturbosch.detekt.formatting.wrappers.SpacingAroundDot
+import io.gitlab.arturbosch.detekt.formatting.wrappers.SpacingAroundDoubleColon
 import io.gitlab.arturbosch.detekt.formatting.wrappers.SpacingAroundKeyword
 import io.gitlab.arturbosch.detekt.formatting.wrappers.SpacingAroundOperators
 import io.gitlab.arturbosch.detekt.formatting.wrappers.SpacingAroundParens
 import io.gitlab.arturbosch.detekt.formatting.wrappers.SpacingAroundRangeOperator
+import io.gitlab.arturbosch.detekt.formatting.wrappers.SpacingBetweenDeclarationsWithAnnotations
+import io.gitlab.arturbosch.detekt.formatting.wrappers.SpacingBetweenDeclarationsWithComments
 import io.gitlab.arturbosch.detekt.formatting.wrappers.StringTemplate
 import org.jetbrains.kotlin.com.intellij.lang.ASTNode
 import org.jetbrains.kotlin.com.intellij.psi.impl.source.JavaDummyElement
 import org.jetbrains.kotlin.com.intellij.psi.impl.source.JavaDummyHolder
 import org.jetbrains.kotlin.psi.KtFile
+import java.util.LinkedList
 
 /**
  * Runs all KtLint rules.
@@ -76,28 +80,44 @@ class KtLintMultiRule(config: Config = Config.empty) : MultiRule() {
         SpacingAroundColon(config),
         SpacingAroundComma(config),
         SpacingAroundCurly(config),
+        SpacingAroundDoubleColon(config),
         SpacingAroundDot(config),
         SpacingAroundKeyword(config),
         SpacingAroundOperators(config),
         SpacingAroundParens(config),
         SpacingAroundRangeOperator(config),
+        SpacingBetweenDeclarationsWithAnnotations(config),
+        SpacingBetweenDeclarationsWithComments(config),
         StringTemplate(config)
     )
 
     override fun visit(root: KtFile) {
-        val sortedRules = activeRules.sortedBy { it.lastModifier() }
+        val sortedRules = getSortedRules()
         sortedRules.forEach { it.visit(root) }
         root.node.visitTokens { node ->
-            sortedRules.forEach { rule ->
-                (rule as? FormattingRule)?.runIfActive { this.apply(node) }
-            }
+            sortedRules.forEach { it.apply(node) }
         }
     }
 
-    private fun Rule.lastModifier(): Boolean {
-        val rule = (this as? FormattingRule)?.wrapping ?: return false
-        return rule is com.pinterest.ktlint.core.Rule.Modifier.Last ||
-            rule is com.pinterest.ktlint.core.Rule.Modifier.RestrictToRootLast
+    private fun getSortedRules(): List<FormattingRule> {
+        val runFirstOnRoot = mutableListOf<FormattingRule>()
+        val other = mutableListOf<FormattingRule>()
+        val runLastOnRoot = mutableListOf<FormattingRule>()
+        val runLast = mutableListOf<FormattingRule>()
+        for (rule in activeRules.filterIsInstance<FormattingRule>()) {
+            when (rule.wrapping) {
+                is Last -> runLast.add(rule)
+                is RestrictToRoot -> runFirstOnRoot.add(rule)
+                is RestrictToRootLast -> runLastOnRoot.add(rule)
+                else -> other.add(rule)
+            }
+        }
+        return LinkedList<FormattingRule>().apply {
+            addAll(runFirstOnRoot)
+            addAll(other)
+            addAll(runLastOnRoot)
+            addAll(runLast)
+        }
     }
 
     private fun ASTNode.visitTokens(currentNode: (ASTNode) -> Unit) {
@@ -112,3 +132,7 @@ class KtLintMultiRule(config: Config = Config.empty) : MultiRule() {
         return parent !is JavaDummyHolder && parent !is JavaDummyElement
     }
 }
+
+typealias RestrictToRoot = com.pinterest.ktlint.core.Rule.Modifier.RestrictToRoot
+typealias RestrictToRootLast = com.pinterest.ktlint.core.Rule.Modifier.RestrictToRootLast
+typealias Last = com.pinterest.ktlint.core.Rule.Modifier.Last

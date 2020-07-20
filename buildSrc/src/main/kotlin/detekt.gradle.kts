@@ -22,11 +22,9 @@ subprojects {
         plugin("io.gitlab.arturbosch.detekt")
     }
 
-    tasks.withType<Detekt> {
+    tasks.withType<Detekt>().configureEach {
         jvmTarget = "1.8"
     }
-
-    val userHome = System.getProperty("user.home")
 
     detekt {
         buildUponDefaultConfig = true
@@ -36,14 +34,6 @@ subprojects {
             xml.enabled = true
             html.enabled = true
             txt.enabled = true
-        }
-
-        idea {
-            path = "$userHome/.idea"
-            codeStyleScheme = "$userHome/.idea/idea-code-style.xml"
-            inspectionsProfile = "$userHome/.idea/inspect.xml"
-            report = "${project.projectDir}/reports"
-            mask = "*.kt"
         }
     }
 }

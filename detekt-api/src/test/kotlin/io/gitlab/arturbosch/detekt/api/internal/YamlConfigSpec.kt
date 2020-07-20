@@ -1,12 +1,10 @@
 package io.gitlab.arturbosch.detekt.api.internal
 
-import io.gitlab.arturbosch.detekt.api.Config
-import io.gitlab.arturbosch.detekt.test.resource
+import io.github.detekt.test.utils.resourceAsPath
 import io.gitlab.arturbosch.detekt.test.yamlConfig
 import org.assertj.core.api.Assertions
 import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.Assertions.assertThatIllegalStateException
-import org.assertj.core.api.Assertions.fail
 import org.spekframework.spek2.Spek
 import org.spekframework.spek2.style.specification.describe
 import java.nio.file.Paths
@@ -19,27 +17,19 @@ class YamlConfigSpec : Spek({
         val config by memoized { yamlConfig("detekt.yml") }
 
         it("should create a sub config") {
-            try {
-                val subConfig = config.subConfig("style")
-                assertThat(subConfig.valueOrDefault("WildcardImport", mapOf<String, Any>())).isNotEmpty
-                assertThat(subConfig.valueOrDefault("WildcardImport", mapOf<String, Any>())["active"].toString()).isEqualTo("true")
-                assertThat(subConfig.valueOrDefault("WildcardImport", mapOf<String, Any>())["active"] as Boolean).isTrue()
-                assertThat(subConfig.valueOrDefault("NotFound", mapOf<String, Any>())).isEmpty()
-                assertThat(subConfig.valueOrDefault("NotFound", "")).isEmpty()
-            } catch (ignored: Config.InvalidConfigurationError) {
-                fail("Creating a sub config should work for test resources config!")
-            }
+            val subConfig = config.subConfig("style")
+            assertThat(subConfig.valueOrDefault("WildcardImport", mapOf<String, Any>())).isNotEmpty
+            assertThat(subConfig.valueOrDefault("WildcardImport", mapOf<String, Any>())["active"].toString()).isEqualTo("true")
+            assertThat(subConfig.valueOrDefault("WildcardImport", mapOf<String, Any>())["active"] as Boolean).isTrue()
+            assertThat(subConfig.valueOrDefault("NotFound", mapOf<String, Any>())).isEmpty()
+            assertThat(subConfig.valueOrDefault("NotFound", "")).isEmpty()
         }
 
         it("should create a sub sub config") {
-            try {
-                val subConfig = config.subConfig("style")
-                val subSubConfig = subConfig.subConfig("WildcardImport")
-                assertThat(subSubConfig.valueOrDefault("active", false)).isTrue()
-                assertThat(subSubConfig.valueOrDefault("NotFound", true)).isTrue()
-            } catch (ignored: Config.InvalidConfigurationError) {
-                fail("Creating a sub config should work for test resources config!")
-            }
+            val subConfig = config.subConfig("style")
+            val subSubConfig = subConfig.subConfig("WildcardImport")
+            assertThat(subSubConfig.valueOrDefault("active", false)).isTrue()
+            assertThat(subSubConfig.valueOrDefault("NotFound", true)).isTrue()
         }
 
         it("tests wrong sub config conversion") {
@@ -92,13 +82,13 @@ class YamlConfigSpec : Spek({
     describe("yaml config") {
 
         it("loads the config from a given yaml file") {
-            val path = Paths.get(resource("detekt.yml"))
+            val path = resourceAsPath("detekt.yml")
             val config = YamlConfig.load(path)
             assertThat(config).isNotNull
         }
 
         it("loads the config from a given text file") {
-            val path = Paths.get(resource("detekt.txt"))
+            val path = resourceAsPath("detekt.txt")
             val config = YamlConfig.load(path)
             assertThat(config).isNotNull
         }
@@ -111,7 +101,7 @@ class YamlConfigSpec : Spek({
         }
 
         it("throws an exception on a directory") {
-            val path = Paths.get(resource("/config_validation"))
+            val path = resourceAsPath("/config_validation")
             Assertions.assertThatIllegalArgumentException()
                 .isThrownBy { YamlConfig.load(path) }
                 .withMessageStartingWith("Configuration must be a file")

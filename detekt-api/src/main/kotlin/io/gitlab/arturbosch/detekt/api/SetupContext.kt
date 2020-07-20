@@ -1,13 +1,12 @@
 package io.gitlab.arturbosch.detekt.api
 
-import java.io.PrintStream
 import java.net.URI
 
 /**
  * Context providing useful processing settings to initialize extensions.
  */
 @UnstableApi
-interface SetupContext {
+interface SetupContext : PropertiesAware {
     /**
      * All config locations which where used to create [config].
      */
@@ -21,10 +20,10 @@ interface SetupContext {
     /**
      * The channel to log all the output.
      */
-    val outPrinter: PrintStream
+    val outputChannel: Appendable
 
     /**
      * The channel to log all the errors.
      */
-    val errPrinter: PrintStream
+    val errorChannel: Appendable
 }

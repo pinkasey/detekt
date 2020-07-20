@@ -1,5 +1,7 @@
 package io.gitlab.arturbosch.detekt.core.rules
 
+import io.github.detekt.psi.absolutePath
+import io.github.detekt.tooling.api.spec.RulesSpec
 import io.gitlab.arturbosch.detekt.api.Config
 import io.gitlab.arturbosch.detekt.api.Finding
 import io.gitlab.arturbosch.detekt.api.MultiRule
@@ -9,26 +11,17 @@ import io.gitlab.arturbosch.detekt.api.RuleSet
 import io.gitlab.arturbosch.detekt.api.RuleSetId
 import io.gitlab.arturbosch.detekt.api.RuleSetProvider
 import io.gitlab.arturbosch.detekt.api.internal.BaseRule
-import io.gitlab.arturbosch.detekt.api.internal.absolutePath
 import io.gitlab.arturbosch.detekt.api.internal.createPathFilters
+import io.gitlab.arturbosch.detekt.core.ProcessingSettings
 import org.jetbrains.kotlin.psi.KtFile
 import org.jetbrains.kotlin.resolve.BindingContext
-import java.nio.file.Paths
 
-fun RuleSetProvider.isActive(config: Config): Boolean =
-    config.subConfig(ruleSetId)
-        .valueOrDefault("active", true)
+fun Config.isActive(): Boolean =
+    valueOrDefault("active", true)
 
-fun RuleSetProvider.createRuleSet(config: Config): RuleSet =
-    instance(config.subConfig(ruleSetId))
-
-fun RuleSet.shouldAnalyzeFile(file: KtFile, config: Config): Boolean {
-    val filters = config.subConfig(id).createPathFilters()
-    if (filters != null) {
-        val path = Paths.get(file.absolutePath())
-        return !filters.isIgnored(path)
-    }
-    return true
+fun Config.shouldAnalyzeFile(file: KtFile): Boolean {
+    val filters = createPathFilters()
+    return filters == null || !filters.isIgnored(file.absolutePath())
 }
 
 fun RuleSet.visitFile(
@@ -59,4 +52,15 @@ fun associateRuleIdsToRuleSetIds(rules: Map<RuleSetId, List<BaseRule>>): IdMappi
                 .map { ruleId -> ruleId to ruleSetId }
         }
         .toMap()
+}
+
+fun RulesSpec.RunPolicy.createRuleProviders(settings: ProcessingSettings): List<RuleSetProvider> = when (this) {
+    RulesSpec.RunPolicy.NoRestrictions -> RuleSetLocator(settings).load()
+    is RulesSpec.RunPolicy.RestrictToSingleRule -> {
+        val (ruleSetId, ruleId) = id
+        val realProvider = requireNotNull(
+            RuleSetLocator(settings).load().find { it.ruleSetId == ruleSetId }
+        ) { "There was no rule set with id '$ruleSetId'." }
+        listOf(SingleRuleProvider(ruleId, realProvider))
+    }
 }

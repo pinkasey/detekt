@@ -9,7 +9,7 @@ import io.gitlab.arturbosch.detekt.generator.collection.Rule
 object TestExclusions {
 
     @Suppress("MaxLineLength")
-    const val pattern = "['**/test/**', '**/androidTest/**', '**/commonTest/**', '**/jvmTest/**', '**/jsTest/**', '**/iosTest/**', '**/*.Test.kt', '**/*.Spec.kt', '**/*.Spek.kt']"
+    const val pattern = "['**/test/**', '**/androidTest/**', '**/commonTest/**', '**/jvmTest/**', '**/jsTest/**', '**/iosTest/**']"
     val ruleSets = setOf("comments")
     val rules = setOf(
         "NamingRules",
@@ -22,7 +22,8 @@ object TestExclusions {
         "ForEachOnRange",
         "FunctionMaxLength",
         "TooGenericExceptionCaught",
-        "InstanceOfCheckForException"
+        "InstanceOfCheckForException",
+        "ThrowingExceptionsWithoutMessageOrCause"
     )
 
     fun Rule.isExcludedInTests() = name in rules || inMultiRule in rules

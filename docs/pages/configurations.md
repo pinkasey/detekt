@@ -13,7 +13,7 @@ _detekt_ uses a yaml style configuration file for various things:
 - Kotlin file processors
 - console and output formats
 
-See the [default-detekt-config.yml](https://github.com/detekt/detekt/blob/master/detekt-cli/src/main/resources/default-detekt-config.yml) file for all defined configuration options and their default values. 
+See the [default-detekt-config.yml](https://github.com/detekt/detekt/blob/master/detekt-core/src/main/resources/default-detekt-config.yml) file for all defined configuration options and their default values. 
 
 _Note:_ When using a custom config file, the default values are ignored unless you also set the `--build-upon-default-config` flag.
 
@@ -72,16 +72,23 @@ output-reports:
 
 #### Processors
 
-Processors are usually used to raise project metrics.
-Uncomment the ones you do not care about.
+Count processors are used to calculate project metrics.
+For example, when all count processors are enabled, a detekt html report might look like this:
+
+![Processor metrics in html report](../images/processor_metrics_in_html_report.png)
+
+The `'DetektProgressListener'` processor shows a progress indicator in stdout while a detekt process is running.
+
+Uncomment the processors you don't care about.
 
 ```yaml
 processors:
-  active: true
-  exclude:
-  # - 'FunctionCountProcessor'
-  # - 'PropertyCountProcessor'
-  # - 'ClassCountProcessor'
-  # - 'PackageCountProcessor'
-  # - 'KtFileCountProcessor'
+    active: true
+    exclude:
+        - 'DetektProgressListener'
+        # - 'FunctionCountProcessor'
+        # - 'PropertyCountProcessor'
+        # - 'ClassCountProcessor'
+        # - 'PackageCountProcessor'
+        # - 'KtFileCountProcessor'
 ```

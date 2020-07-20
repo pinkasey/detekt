@@ -3,6 +3,7 @@ package io.gitlab.arturbosch.detekt.cli
 import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.Assertions.assertThatIllegalArgumentException
 import org.assertj.core.api.Assertions.assertThatIllegalStateException
+import org.jetbrains.kotlin.com.intellij.openapi.util.SystemInfo
 import org.spekframework.spek2.Spek
 import org.spekframework.spek2.style.specification.describe
 import java.nio.file.Paths
@@ -10,7 +11,7 @@ import java.nio.file.Paths
 class ReportPathSpec : Spek({
 
     describe("report paths") {
-        if (IS_WINDOWS) {
+        if (SystemInfo.isWindows) {
             context("a Windows path") {
                 it("parses a valid absolute path correctly") {
                     val reportPath = ReportPath.from("test:C:\\tmp\\valid\\report")
@@ -65,25 +66,25 @@ class ReportPathSpec : Spek({
         it("parses and maps the txt kind correctly") {
             val reportPath = ReportPath.from("txt:/tmp/valid/report")
 
-            assertThat(reportPath.kind).isEqualTo("TxtOutputReport")
+            assertThat(reportPath.kind).isEqualTo("txt")
         }
 
         it("parses and maps the xml kind correctly") {
             val reportPath = ReportPath.from("xml:/tmp/valid/report")
 
-            assertThat(reportPath.kind).isEqualTo("XmlOutputReport")
+            assertThat(reportPath.kind).isEqualTo("xml")
         }
 
         it("parses and maps the html kind correctly") {
             val reportPath = ReportPath.from("html:/tmp/valid/report")
 
-            assertThat(reportPath.kind).isEqualTo("HtmlOutputReport")
+            assertThat(reportPath.kind).isEqualTo("html")
         }
 
         it("parses and maps the txt kind correctly") {
             val reportPath = ReportPath.from("txt:/tmp/valid/report")
 
-            assertThat(reportPath.kind).isEqualTo("TxtOutputReport")
+            assertThat(reportPath.kind).isEqualTo("txt")
         }
 
         it("parses a non-default kind correctly") {

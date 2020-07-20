@@ -1,5 +1,6 @@
 package io.gitlab.arturbosch.detekt.core
 
+import io.github.detekt.test.utils.compileForTest
 import io.gitlab.arturbosch.detekt.api.Config
 import io.gitlab.arturbosch.detekt.api.Debt
 import io.gitlab.arturbosch.detekt.api.Issue
@@ -7,8 +8,6 @@ import io.gitlab.arturbosch.detekt.api.Rule
 import io.gitlab.arturbosch.detekt.api.RuleSet
 import io.gitlab.arturbosch.detekt.api.RuleSetProvider
 import io.gitlab.arturbosch.detekt.api.Severity
-import io.gitlab.arturbosch.detekt.test.compileForTest
-import io.gitlab.arturbosch.detekt.test.createProcessingSettings
 import io.gitlab.arturbosch.detekt.test.yamlConfig
 import org.assertj.core.api.Assertions.assertThat
 import org.jetbrains.kotlin.psi.KtClass
@@ -37,15 +36,17 @@ class CorrectableRulesFirstSpec : Spek({
             }
 
             val testFile = path.resolve("Test.kt")
-            val detector = Detektor(
-                createProcessingSettings(testFile, yamlConfig("one-correctable-rule.yml")),
+            val settings = createProcessingSettings(testFile, yamlConfig("configs/one-correctable-rule.yml"))
+            val detector = Analyzer(
+                settings,
                 listOf(object : RuleSetProvider {
                     override val ruleSetId: String = "Test"
                     override fun instance(config: Config) = RuleSet(ruleSetId, listOf(Last(config), First(config)))
-                })
+                }),
+                emptyList()
             )
 
-            detector.run(listOf(compileForTest(testFile)))
+            settings.use { detector.run(listOf(compileForTest(testFile))) }
 
             assertThat(actualLastRuleId).isEqualTo("NonCorrectable")
         }

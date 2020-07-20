@@ -4,10 +4,12 @@ import io.gitlab.arturbosch.detekt.internal.ClassLoaderCache
 import org.gradle.api.GradleException
 import org.gradle.api.Project
 import org.gradle.api.file.FileCollection
+import org.gradle.api.logging.Logger
 import java.io.PrintStream
 import java.lang.reflect.InvocationTargetException
 
 internal interface DetektInvoker {
+
     fun invokeCli(
         arguments: List<CliArgument>,
         classpath: FileCollection,
@@ -18,9 +20,9 @@ internal interface DetektInvoker {
     companion object {
         fun create(project: Project): DetektInvoker =
             if (project.isDryRunEnabled()) {
-                DryRunInvoker(project)
+                DryRunInvoker(project.logger)
             } else {
-                DefaultCliInvoker(project)
+                DefaultCliInvoker()
             }
 
         private fun Project.isDryRunEnabled(): Boolean {
@@ -31,7 +33,7 @@ internal interface DetektInvoker {
     }
 }
 
-private class DefaultCliInvoker(private val project: Project) : DetektInvoker {
+private class DefaultCliInvoker : DetektInvoker {
 
     override fun invokeCli(
         arguments: List<CliArgument>,
@@ -63,7 +65,7 @@ private class DefaultCliInvoker(private val project: Project) : DetektInvoker {
         msg != null && "Build failed with" in msg && "issues" in msg
 }
 
-private class DryRunInvoker(private val project: Project) : DetektInvoker {
+private class DryRunInvoker(private val logger: Logger) : DetektInvoker {
 
     override fun invokeCli(
         arguments: List<CliArgument>,
@@ -72,10 +74,10 @@ private class DryRunInvoker(private val project: Project) : DetektInvoker {
         ignoreFailures: Boolean
     ) {
         val cliArguments = arguments.flatMap(CliArgument::toArgument)
-        project.logger.info("Invoking detekt with dry-run.")
-        project.logger.info("Task: $taskName")
-        project.logger.info("Arguments: ${cliArguments.joinToString(" ")}")
-        project.logger.info("Classpath: ${classpath.files}")
-        project.logger.info("Ignore failures: $ignoreFailures")
+        logger.info("Invoking detekt with dry-run.")
+        logger.info("Task: $taskName")
+        logger.info("Arguments: ${cliArguments.joinToString(" ")}")
+        logger.info("Classpath: ${classpath.files}")
+        logger.info("Ignore failures: $ignoreFailures")
     }
 }

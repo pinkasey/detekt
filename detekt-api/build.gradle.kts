@@ -5,27 +5,21 @@ plugins {
 }
 
 dependencies {
-    implementation("org.yaml:snakeyaml:${Versions.SNAKEYAML}")
+    implementation("org.yaml:snakeyaml")
     api(kotlin("compiler-embeddable"))
+    api(project(":detekt-psi-utils"))
 
+    testImplementation(project(":detekt-parser"))
     testImplementation(project(":detekt-test"))
 }
 
-tasks.withType<DokkaTask> {
+tasks.withType<DokkaTask>().configureEach {
     outputFormat = "jekyll"
     outputDirectory = "$rootDir/docs/pages/kdoc"
     configuration {
-        // suppresses undocumented classes but not dokka warnings https://github.com/Kotlin/dokka/issues/90
+        moduleName = project.name
         reportUndocumented = false
         @Suppress("MagicNumber")
         jdkVersion = 8
-    }
-}
-
-tasks.withType<Test> {
-    systemProperty("kotlinVersion", embeddedKotlinVersion)
-
-    doFirst {
-        systemProperty("testClasspath", classpath.joinToString(";"))
     }
 }

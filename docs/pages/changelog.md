@@ -591,7 +591,7 @@ subprojects {
         debug = true
         toolVersion = usedDetektVersion
         config = files(
-                project.rootDir.resolve("detekt-cli/src/main/resources/default-detekt-config.yml"),
+                project.rootDir.resolve("detekt-core/src/main/resources/default-detekt-config.yml"),
                 project.rootDir.resolve("reports/failfast.yml")
         )
         filters = ".*/resources/.*,.*/build/.*"
@@ -1351,7 +1351,7 @@ TooGenericExceptionThrown rules. Own exceptions can be added to the list.
 - EmptyXXXBlock rules were reimplemented and can be turned off individually
 - The rule NamingConventions was reimplemented and now every case is separately configurable and new cases were added
 
-See [default-detekt-config.yml](detekt-cli/src/main/resources/default-detekt-config.yml)
+See [default-detekt-config.yml](detekt-core/src/main/resources/default-detekt-config.yml)
 
 #### RC3
 
@@ -1704,8 +1704,8 @@ See all issues at: [M7](https://gitlab.com/arturbosch/detekt/milestones/7)
 ##### New features
 
 - allow to fail builds on code smell thresholds (configurable), see 'Configure build failure thresholds' in README
-- blacklist code smells which are false positives
-- generate a baseline whitelist of code smells if your project is already old and has many smells, so only new
+- suppress code smells which are false positives
+- generate a baseline of code smells if your project is already old and has many smells, so only new
 smells are shown in analysis (see 'Code Smell baseline and ignore list' in README)
 
 ##### Improvements

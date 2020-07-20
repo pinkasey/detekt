@@ -49,6 +49,14 @@ See <a href="https://ktlint.github.io">ktlint-website</a> for documentation.
 
 See <a href="https://ktlint.github.io">ktlint-website</a> for documentation.
 
+For defining custom import layout patterns see: https://github.com/pinterest/ktlint/blob/cdf871b6f015359f9a6f02e15ef1b85a6c442437/ktlint-ruleset-standard/src/main/kotlin/com/pinterest/ktlint/ruleset/standard/ImportOrderingRule.kt
+
+#### Configuration options:
+
+* ``layout`` (default: ``'idea'``)
+
+   the import ordering layout; use 'ascii', 'idea' or define a custom one
+
 ### Indentation
 
 See <a href="https://ktlint.github.io/#rule-indentation">ktlint-website</a> for documentation.
@@ -159,6 +167,10 @@ See <a href="https://ktlint.github.io/#rule-spacing">ktlint-website</a> for docu
 
 See <a href="https://ktlint.github.io/#rule-spacing">ktlint-website</a> for documentation.
 
+### SpacingAroundDoubleColon
+
+See <a href="https://ktlint.github.io/#rule-spacing">ktlint-website</a> for documentation.
+
 ### SpacingAroundKeyword
 
 See <a href="https://ktlint.github.io/#rule-spacing">ktlint-website</a> for documentation.
@@ -172,6 +184,14 @@ See <a href="https://ktlint.github.io/#rule-spacing">ktlint-website</a> for docu
 See <a href="https://ktlint.github.io/#rule-spacing">ktlint-website</a> for documentation.
 
 ### SpacingAroundRangeOperator
+
+See <a href="https://ktlint.github.io/#rule-spacing">ktlint-website</a> for documentation.
+
+### SpacingBetweenDeclarationsWithAnnotations
+
+See <a href="https://ktlint.github.io/#rule-spacing">ktlint-website</a> for documentation.
+
+### SpacingBetweenDeclarationsWithComments
 
 See <a href="https://ktlint.github.io/#rule-spacing">ktlint-website</a> for documentation.
 

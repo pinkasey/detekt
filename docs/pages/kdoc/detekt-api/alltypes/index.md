@@ -120,13 +120,6 @@ Represents a code smell for that can be auto corrected.
 
 |
 
-##### [io.gitlab.arturbosch.detekt.api.internal.CyclomaticComplexity](../io.gitlab.arturbosch.detekt.api.internal/-cyclomatic-complexity/index.html)
-
-Counts the cyclomatic complexity of nodes.
-
-
-|
-
 ##### [io.gitlab.arturbosch.detekt.api.Debt](../io.gitlab.arturbosch.detekt.api/-debt/index.html)
 
 Debt describes the estimated amount of work needed to fix a given issue.
@@ -152,14 +145,6 @@ Interface which marks sub-classes as provided by detekt via the rules sub-module
 
 Storage for all kinds of findings and additional information
 which needs to be transferred from the detekt engine to the user.
-
-
-|
-
-##### [io.gitlab.arturbosch.detekt.api.internal.DetektPomModel](../io.gitlab.arturbosch.detekt.api.internal/-detekt-pom-model/index.html)
-
-Adapted from https://github.com/pinterest/ktlint/blob/master/ktlint-core/src/main/kotlin/com/pinterest/ktlint/core/KtLint.kt
-Licenced under the MIT licence - https://github.com/pinterest/ktlint/blob/master/LICENSE
 
 
 |
@@ -227,14 +212,6 @@ Adds metric container behaviour.
 
 |
 
-##### [io.gitlab.arturbosch.detekt.api.HierarchicalConfig](../io.gitlab.arturbosch.detekt.api/-hierarchical-config/index.html)
-
-A configuration which keeps track of the config it got sub-config'ed from by the [subConfig](../io.gitlab.arturbosch.detekt.api/-config/sub-config.html) function.
-It's main usage is to recreate the property-path which was taken when using the [subConfig](../io.gitlab.arturbosch.detekt.api/-config/sub-config.html) function repeatedly.
-
-
-|
-
 ##### [io.gitlab.arturbosch.detekt.api.Issue](../io.gitlab.arturbosch.detekt.api/-issue/index.html)
 
 An issue represents a problem in the codebase.
@@ -258,11 +235,6 @@ An issue represents a problem in the codebase.
 | (extensions in package io.gitlab.arturbosch.detekt.api.internal)
 
 ##### [org.jetbrains.kotlin.psi.KtElement](../io.gitlab.arturbosch.detekt.api.internal/org.jetbrains.kotlin.psi.-kt-element/index.html)
-
-
-| (extensions in package io.gitlab.arturbosch.detekt.api.internal)
-
-##### [org.jetbrains.kotlin.psi.KtFile](../io.gitlab.arturbosch.detekt.api.internal/org.jetbrains.kotlin.psi.-kt-file/index.html)
 
 
 |
@@ -325,6 +297,21 @@ which is written inside a file.
 ##### [io.gitlab.arturbosch.detekt.api.ProjectMetric](../io.gitlab.arturbosch.detekt.api/-project-metric/index.html)
 
 Anything that can be expressed as a number value for projects.
+
+
+|
+
+##### [io.gitlab.arturbosch.detekt.api.PropertiesAware](../io.gitlab.arturbosch.detekt.api/-properties-aware/index.html)
+
+Properties holder. Allows to store and retrieve any data.
+
+
+|
+
+##### [io.gitlab.arturbosch.detekt.api.ReportingExtension](../io.gitlab.arturbosch.detekt.api/-reporting-extension/index.html)
+
+Allows to intercept detekt's result container by listening to the initial and final state
+and manipulate the reported findings.
 
 
 |

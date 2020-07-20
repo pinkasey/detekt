@@ -1,14 +1,32 @@
 rootProject.name = "detekt"
 include(
     "detekt-api",
-    "detekt-core",
-    "detekt-rules",
     "detekt-cli",
-    "detekt-test",
-    "detekt-sample-extensions",
-    "detekt-generator",
+    "detekt-bom",
+    "detekt-core",
     "detekt-formatting",
-    "detekt-gradle-plugin"
+    "detekt-generator",
+    "detekt-gradle-plugin",
+    "detekt-metrics",
+    "detekt-parser",
+    "detekt-psi-utils",
+    "detekt-report-html",
+    "detekt-report-txt",
+    "detekt-report-xml",
+    "detekt-rules",
+    "detekt-rules-complexity",
+    "detekt-rules-coroutines",
+    "detekt-rules-documentation",
+    "detekt-rules-empty",
+    "detekt-rules-errorprone",
+    "detekt-rules-exceptions",
+    "detekt-rules-naming",
+    "detekt-rules-performance",
+    "detekt-rules-style",
+    "detekt-sample-extensions",
+    "detekt-test",
+    "detekt-test-utils",
+    "detekt-tooling"
 )
 
 pluginManagement {
@@ -20,5 +38,5 @@ pluginManagement {
 
 // build scan plugin can only be applied in settings file
 plugins {
-    id("com.gradle.enterprise") version "3.2.1"
+    id("com.gradle.enterprise") version "3.3.1"
 }

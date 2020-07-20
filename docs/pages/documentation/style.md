@@ -43,7 +43,7 @@ if (i > 0 && i < 5) {
 
 ### DataClassContainsFunctions
 
-This rule reports functions inside data classes which have not been whitelisted as a conversion function.
+This rule reports functions inside data classes which have not been marked as a conversion function.
 
 Data classes should mainly be used to store data. This rule assumes that they should not contain any extra functions
 aside functions that help with converting objects from/to one another.
@@ -317,7 +317,7 @@ Detekt will then report all methods invocation that are forbidden.
 
 #### Configuration options:
 
-* ``methods`` (default: ``[]``)
+* ``methods`` (default: ``['kotlin.io.println', 'kotlin.io.print']``)
 
    Comma separated list of fully qualified method signatures which are forbidden
 
@@ -1242,6 +1242,7 @@ an ordinary method/extension function call to reduce visual complexity
 ```kotlin
 config.apply { version = "1.2" } // can be replaced with `config.version = "1.2"`
 config?.apply { environment = "test" } // can be replaced with `config?.environment = "test"`
+config?.apply { println(version) } // `apply` can be replaced by `let`
 ```
 
 #### Compliant Code:
@@ -1282,23 +1283,21 @@ to reduce visual complexity
 #### Noncompliant Code:
 
 ```kotlin
+a.let { print(it) } // can be replaced with `print(a)`
 a.let { it.plus(1) } // can be replaced with `a.plus(1)`
 a?.let { it.plus(1) } // can be replaced with `a?.plus(1)`
-a.let { that -> that.plus(1) } // can be replaced with `a.plus(1)`
-a?.let { that -> that.plus(1) } // can be replaced with `a?.plus(1)`
 a?.let { that -> that.plus(1) }?.let { it.plus(1) } // can be replaced with `a?.plus(1)?.plus(1)`
+a.let { 1.plus(1) } // can be replaced with `1.plus(1)`
+a?.let { 1.plus(1) } // can be replaced with `if (a == null) 1.plus(1)`
 ```
 
 #### Compliant Code:
 
 ```kotlin
 a?.let { print(it) }
-a.let { print(it) }
-a?.let { msg -> print(msg) }
-a.let { msg -> print(msg) }
 a?.let { 1.plus(it) } ?.let { msg -> print(msg) }
 a?.let { it.plus(it) }
-a?.let { param -> param.plus(param) }
+val b = a?.let { 1.plus(1) }
 ```
 
 ### UnnecessaryParentheses
@@ -1651,9 +1650,8 @@ which classes are imported and helps prevent naming conflicts.
 
 Library updates can introduce naming clashes with your own classes which might result in compilation errors.
 
-**NOTE:** This rule is effectively overridden by the `NoWildcardImports` formatting rule (a wrapped ktlint rule).
-That rule will fail the check regardless of the whitelist configured here.
-Therefore if whitelist is needed `NoWildcardImports` rule should be disabled.
+**NOTE**: This rule has a twin implementation NoWildcardImports in the formatting rule set (a wrapped KtLint rule).
+When suppressing an issue of WildcardImport in the baseline file, make sure to suppress the corresponding NoWildcardImports issue.
 
 **Severity**: Style
 
@@ -1663,7 +1661,7 @@ Therefore if whitelist is needed `NoWildcardImports` rule should be disabled.
 
 * ``excludeImports`` (default: ``['java.util.*', 'kotlinx.android.synthetic.*']``)
 
-   Define a whitelist of package names that should be allowed to be imported
+   Define a list of package names that should be allowed to be imported
 with wildcard imports.
 
 #### Noncompliant Code:

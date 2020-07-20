@@ -2,7 +2,7 @@ package io.gitlab.arturbosch.detekt.core
 
 import io.gitlab.arturbosch.detekt.api.Config
 import io.gitlab.arturbosch.detekt.api.FileProcessListener
-import java.util.ServiceLoader
+import io.gitlab.arturbosch.detekt.core.extensions.loadExtensions
 
 class FileProcessorLocator(private val settings: ProcessingSettings) {
 
@@ -11,14 +11,18 @@ class FileProcessorLocator(private val settings: ProcessingSettings) {
     private val processorsActive = subConfig.valueOrDefault("active", true)
     private val excludes = subConfig.valueOrDefault("exclude", emptyList<String>())
 
-    fun load(): List<FileProcessListener> =
-        if (processorsActive) {
-            ServiceLoader.load(FileProcessListener::class.java, settings.pluginLoader)
-                .filter { it.id !in excludes }
-                .onEach { it.init(config); it.init(settings) }
-                .toList()
-                .also { settings.debug { "Registered file processors: $it" } }
+    fun load(): List<FileProcessListener> {
+        var processors: List<FileProcessListener> = if (processorsActive) {
+            loadExtensions(settings) { it.id !in excludes }
         } else {
             emptyList()
         }
+        if (settings.spec.rulesSpec.autoCorrect) {
+            val modifier = KtFileModifier()
+            if (modifier.id !in excludes) {
+                processors = processors + modifier
+            }
+        }
+        return processors
+    }
 }

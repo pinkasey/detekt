@@ -1,8 +1,5 @@
 package io.gitlab.arturbosch.detekt.cli
 
-import io.gitlab.arturbosch.detekt.cli.out.HtmlOutputReport
-import io.gitlab.arturbosch.detekt.cli.out.TxtOutputReport
-import io.gitlab.arturbosch.detekt.cli.out.XmlOutputReport
 import java.nio.file.Path
 import java.nio.file.Paths
 
@@ -25,20 +22,9 @@ data class ReportPath(val kind: String, val path: Path) {
             }
 
             val kind = parts[0]
-            assertNotEmpty(kind, path)
-            return ReportPath(defaultMapping(kind), Paths.get(path))
-        }
-
-        private fun assertNotEmpty(kind: String, path: String) {
             require(kind.isNotEmpty()) { "The kind of report must not be empty (path - $path)" }
             require(path.isNotEmpty()) { "The path of the report must not be empty (kind - $kind)" }
-        }
-
-        private fun defaultMapping(reportId: String) = when (reportId) {
-            "txt" -> TxtOutputReport::class.java.simpleName
-            "xml" -> XmlOutputReport::class.java.simpleName
-            "html" -> HtmlOutputReport::class.java.simpleName
-            else -> reportId
+            return ReportPath(kind, Paths.get(path))
         }
     }
 }

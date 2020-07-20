@@ -13,7 +13,6 @@ yaml specification.
 
 ### Properties
 
-| [parent](parent.html) | Returns the parent config which encloses this config part.`val parent: Parent?` |
 | [parentPath](parent-path.html) | Keeps track of which key was taken to [subConfig](../../io.gitlab.arturbosch.detekt.api/-config/sub-config.html) this configuration. Sub-sequential calls to [subConfig](../../io.gitlab.arturbosch.detekt.api/-config/sub-config.html) are tracked with '&gt;' as a separator.`val parentPath: `[`String`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html)`?` |
 | [properties](properties.html) | `val properties: `[`Map`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-map/index.html)`<`[`String`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html)`, `[`Any`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-any/index.html)`>` |
 
@@ -27,10 +26,11 @@ yaml specification.
 
 ### Companion Object Functions
 
-| [load](load.html) | Factory method to load a yaml configuration. Given path must exist and point to a readable file.`fun load(path: `[`Path`](https://docs.oracle.com/javase/8/docs/api/java/nio/file/Path.html)`): `[`Config`](../../io.gitlab.arturbosch.detekt.api/-config/index.html) |
+| [load](load.html) | Factory method to load a yaml configuration. Given path must exist and point to a readable file.`fun load(path: `[`Path`](https://docs.oracle.com/javase/8/docs/api/java/nio/file/Path.html)`): `[`Config`](../../io.gitlab.arturbosch.detekt.api/-config/index.html)<br>Constructs a [YamlConfig](./index.html) from any [Reader](https://docs.oracle.com/javase/8/docs/api/java/io/Reader.html).`fun load(reader: `[`Reader`](https://docs.oracle.com/javase/8/docs/api/java/io/Reader.html)`): `[`Config`](../../io.gitlab.arturbosch.detekt.api/-config/index.html) |
 | [loadResource](load-resource.html) | Factory method to load a yaml configuration from a URL.`fun loadResource(url: `[`URL`](https://docs.oracle.com/javase/8/docs/api/java/net/URL.html)`): `[`Config`](../../io.gitlab.arturbosch.detekt.api/-config/index.html) |
 
 ### Extension Functions
 
 | [createPathFilters](../create-path-filters.html) | `fun `[`Config`](../../io.gitlab.arturbosch.detekt.api/-config/index.html)`.createPathFilters(): `[`PathFilters`](../-path-filters/index.html)`?` |
+| [valueOrDefaultCommaSeparated](../value-or-default-comma-separated.html) | `fun `[`Config`](../../io.gitlab.arturbosch.detekt.api/-config/index.html)`.valueOrDefaultCommaSeparated(key: `[`String`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html)`, default: `[`List`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html)`<`[`String`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html)`>): `[`List`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html)`<`[`String`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html)`>` |
 
