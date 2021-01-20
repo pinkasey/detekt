@@ -9,7 +9,6 @@ import io.gitlab.arturbosch.detekt.generator.out.list
 import io.gitlab.arturbosch.detekt.generator.out.node
 import io.gitlab.arturbosch.detekt.generator.out.yaml
 import io.gitlab.arturbosch.detekt.generator.printer.DocumentationPrinter
-import io.gitlab.arturbosch.detekt.generator.printer.rulesetpage.TestExclusions.isExcludedInTests
 
 object ConfigPrinter : DocumentationPrinter<List<RuleSetPage>> {
 
@@ -23,6 +22,8 @@ object ConfigPrinter : DocumentationPrinter<List<RuleSetPage>> {
             emptyLine()
             yaml { defaultConsoleReportsConfiguration() }
             emptyLine()
+            yaml { defaultOutputReportsConfiguration() }
+            emptyLine()
 
             item.sortedBy { it.ruleSet.name }
                 .forEach { printRuleSet(it.ruleSet, it.rules) }
@@ -33,8 +34,9 @@ object ConfigPrinter : DocumentationPrinter<List<RuleSetPage>> {
     private fun YamlNode.printRuleSet(ruleSet: RuleSetProvider, rules: List<Rule>) {
         node(ruleSet.name) {
             keyValue { "active" to "${ruleSet.active}" }
-            if (ruleSet.name in TestExclusions.ruleSets) {
-                keyValue { Config.EXCLUDES_KEY to TestExclusions.pattern }
+            val ruleSetExclusion = exclusions.singleOrNull { ruleSet.name in it.ruleSets }
+            if (ruleSetExclusion != null) {
+                keyValue { Config.EXCLUDES_KEY to ruleSetExclusion.pattern }
             }
             ruleSet.configuration
                 .forEach { configuration ->
@@ -46,12 +48,13 @@ object ConfigPrinter : DocumentationPrinter<List<RuleSetPage>> {
             }
             rules.forEach { rule ->
                 node(rule.name) {
-                    keyValue { "active" to "${rule.active}" }
+                    keyValue { Config.ACTIVE_KEY to "${rule.active}" }
                     if (rule.autoCorrect) {
-                        keyValue { "autoCorrect" to "true" }
+                        keyValue { Config.AUTO_CORRECT_KEY to "true" }
                     }
-                    if (rule.isExcludedInTests()) {
-                        keyValue { Config.EXCLUDES_KEY to TestExclusions.pattern }
+                    val ruleExclusion = exclusions.singleOrNull { it.isExcluded(rule) }
+                    if (ruleExclusion != null) {
+                        keyValue { Config.EXCLUDES_KEY to ruleExclusion.pattern }
                     }
                     rule.configuration
                         .forEach { configuration ->
@@ -81,6 +84,7 @@ object ConfigPrinter : DocumentationPrinter<List<RuleSetPage>> {
     private fun defaultConfigConfiguration(): String = """
       config:
         validation: true
+        warningsAsErrors: false
         # when writing own rules with new properties, exclude the property path e.g.: 'my_rule_set,.*>.*>[my_property]'
         excludes: ''
     """.trimIndent()
@@ -90,11 +94,18 @@ object ConfigPrinter : DocumentationPrinter<List<RuleSetPage>> {
         active: true
         exclude:
           - 'DetektProgressListener'
+        # - 'KtFileCountProcessor'
+        # - 'PackageCountProcessor'
+        # - 'ClassCountProcessor'
         # - 'FunctionCountProcessor'
         # - 'PropertyCountProcessor'
-        # - 'ClassCountProcessor'
-        # - 'PackageCountProcessor'
-        # - 'KtFileCountProcessor'
+        # - 'ProjectComplexityProcessor'
+        # - 'ProjectCognitiveComplexityProcessor'
+        # - 'ProjectLLOCProcessor'
+        # - 'ProjectCLOCProcessor'
+        # - 'ProjectLOCProcessor'
+        # - 'ProjectSLOCProcessor'
+        # - 'LicenseHeaderLoaderExtension'
     """.trimIndent()
 
     private fun defaultConsoleReportsConfiguration(): String = """
@@ -106,6 +117,15 @@ object ConfigPrinter : DocumentationPrinter<List<RuleSetPage>> {
            - 'NotificationReport'
         #  - 'FindingsReport'
            - 'FileBasedFindingsReport'
+    """.trimIndent()
+
+    private fun defaultOutputReportsConfiguration(): String = """
+      output-reports:
+        active: true
+        exclude:
+        # - 'TxtOutputReport'
+        # - 'XmlOutputReport'
+        # - 'HtmlOutputReport'
     """.trimIndent()
 
     private fun String.isYamlList() = trim().startsWith("-")

@@ -7,6 +7,7 @@
  * You need kotlin 1.3.70+ installed on your machine
  */
 
+@file:Suppress("detekt.CommentSpacing") // for the exec line
 @file:DependsOn("org.kohsuke:github-api:1.112")
 @file:DependsOn("com.github.ajalt:clikt:2.7.1")
 
@@ -21,6 +22,8 @@ import org.kohsuke.github.GHRepository
 import org.kohsuke.github.GitHub
 import java.io.File
 import java.net.URL
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
 
 class GithubMilestoneReport : CliktCommand() {
 
@@ -89,7 +92,7 @@ class GithubMilestoneReport : CliktCommand() {
 
     private fun footer(footer: String, url: URL) = "See all issues at: [$footer]($url)"
 
-    private fun header(name: String) = "#### $name\n"
+    private fun header(name: String) = "#### $name - ${DateTimeFormatter.ISO_DATE.format(LocalDate.now())} \n"
 
     private fun section(name: String) = "##### $name\n"
 }

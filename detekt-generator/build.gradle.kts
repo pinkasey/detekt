@@ -1,5 +1,9 @@
 import java.io.ByteArrayOutputStream
 
+plugins {
+    module
+}
+
 dependencies {
     implementation(project(":detekt-parser"))
     implementation(project(":detekt-api"))
@@ -22,7 +26,7 @@ val ruleModules = rootProject.subprojects
     .map { "${rootProject.rootDir}/$it/src/main/kotlin" }
 
 val generateDocumentation by tasks.registering {
-    dependsOn(tasks.assemble, ":detekt-api:dokka")
+    dependsOn(tasks.assemble, ":detekt-api:dokkaJekyll")
     description = "Generates detekt documentation and the default config.yml based on Rule KDoc"
     group = "documentation"
 
@@ -57,10 +61,9 @@ val generateDocumentation by tasks.registering {
 
 val verifyGeneratorOutput by tasks.registering {
     dependsOn(generateDocumentation)
-    description = "Verifies that all documentation and the config.yml are up-to-date"
+    description = "Verifies that the default-detekt-config.yml is up-to-date"
     doLast {
         assertDefaultConfigUpToDate()
-        assertDocumentationUpToDate()
     }
 }
 
@@ -74,20 +77,5 @@ fun assertDefaultConfigUpToDate() {
     if (configDiff.toString().isNotEmpty()) {
         throw GradleException("The default-detekt-config.yml is not up-to-date. " +
             "You can execute the generateDocumentation Gradle task to update it and commit the changed files.")
-    }
-}
-
-fun assertDocumentationUpToDate() {
-    val configDiff = ByteArrayOutputStream()
-    exec {
-        commandLine = listOf(
-            "git", "diff", documentationDir, "${rootProject.rootDir}/docs/pages/kdoc"
-        )
-        standardOutput = configDiff
-    }
-
-    if (configDiff.toString().isNotEmpty()) {
-        throw GradleException("The detekt documentation is not up-to-date. " +
-            "Please build detekt locally to update it and commit the changed files.")
     }
 }

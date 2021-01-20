@@ -1,3 +1,7 @@
+plugins {
+    module
+}
+
 dependencies {
     compileOnly(project(":detekt-api"))
     compileOnly(project(":detekt-metrics"))
@@ -5,5 +9,6 @@ dependencies {
         exclude(group = "org.jetbrains.kotlin")
     }
     testImplementation(project(":detekt-metrics"))
-    testImplementation(project(":detekt-test"))
+    testImplementation(project(":detekt-test-utils"))
+    testImplementation(testFixtures(project(":detekt-api")))
 }

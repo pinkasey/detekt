@@ -16,28 +16,27 @@ internal class SingleRuleProviderSpec : Spek({
 
     describe("SingleRuleProvider") {
 
-        val provider = SingleRuleProvider(
-            "MagicNumber",
-            object : RuleSetProvider {
-                override val ruleSetId: String = "style"
-                override fun instance(config: Config): RuleSet {
-                    val rule = object : Rule(config) {
-                        override val issue = Issue(
-                            "MagicNumber",
-                            Severity.CodeSmell,
-                            "",
-                            Debt.FIVE_MINS
-                        )
+        val provider by memoized {
+            SingleRuleProvider(
+                "MagicNumber",
+                object : RuleSetProvider {
+                    override val ruleSetId: String = "style"
+                    override fun instance(config: Config): RuleSet {
+                        val rule = object : Rule(config) {
+                            override val issue = Issue(
+                                "MagicNumber",
+                                Severity.CodeSmell,
+                                "",
+                                Debt.FIVE_MINS
+                            )
+                        }
+                        return RuleSet(ruleSetId, listOf(rule))
                     }
-                    return RuleSet(ruleSetId, listOf(rule))
                 }
-            }
-        )
+            )
+        }
 
         context("the right sub config is passed to the rule") {
-
-            fun produceRule(config: Config): Rule =
-                provider.instance(config.subConfig("style")).rules.first() as Rule
 
             arrayOf("true", "false").forEach { value ->
                 it("configures rule with active=$value") {
@@ -47,9 +46,12 @@ internal class SingleRuleProviderSpec : Spek({
                         active: $value
                 """.trimIndent())
 
-                    assertThat(produceRule(config).active).isEqualTo(value.toBoolean())
+                    assertThat(produceRule(provider, config).active).isEqualTo(value.toBoolean())
                 }
             }
         }
     }
 })
+
+private fun produceRule(provider: RuleSetProvider, config: Config): Rule =
+    provider.instance(config.subConfig("style")).rules.first() as Rule

@@ -4,8 +4,6 @@ style rule set
 
 a wildcard import
 
-**Severity**: Defect
-
 **Debt**: 10min
 
 **Aliases**: alias1, alias2
@@ -41,6 +39,8 @@ equals null
 ### NoUnitKeyword
 
 removes :Unit
+
+**Requires Type Resolution**
 
 **Debt**: 5m
 

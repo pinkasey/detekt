@@ -40,7 +40,7 @@ class ThrowsCountSpec : Spek({
                     }
                 }
             """
-            val subject = ThrowsCount(Config.empty)
+            val subject by memoized { ThrowsCount(Config.empty) }
 
             it("does not report violation") {
                 assertThat(subject.lint(code)).isEmpty()
@@ -57,7 +57,7 @@ class ThrowsCountSpec : Spek({
                     }
                 }
             """
-            val subject = ThrowsCount(Config.empty)
+            val subject by memoized { ThrowsCount(Config.empty) }
 
             it("reports violation by default") {
                 assertThat(subject.lint(code)).hasSize(1)
@@ -74,10 +74,34 @@ class ThrowsCountSpec : Spek({
                     }
                 }
             """
-            val subject = ThrowsCount(Config.empty)
+            val subject by memoized { ThrowsCount(Config.empty) }
 
             it("reports violation by default") {
                 assertThat(subject.lint(code)).isEmpty()
+            }
+        }
+
+        context("code with a nested function with 3 throw expressions") {
+            val code = """
+                import java.io.IOException
+
+                fun foo(x: Int) {
+                    fun bar(x: Int) {
+                        when (x) {
+                            1 -> throw IOException()
+                            2 -> throw IOException()
+                            3 -> throw IOException()
+                        }
+                    }
+                    return bar(x)
+                }
+            """
+            val subject by memoized { ThrowsCount(Config.empty) }
+
+            it("reports violation by default") {
+                val findings = subject.lint(code)
+                assertThat(findings).hasSize(1)
+                assertThat(findings[0].entity.location.source.line).isEqualTo(4)
             }
         }
 

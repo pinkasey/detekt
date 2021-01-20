@@ -38,6 +38,7 @@ import org.jetbrains.kotlin.psi.KtCallExpression
  * (default: `- IllegalArgumentException
  *            - IllegalStateException
  *            - IOException`)
+ * @active since v1.16.0
  */
 class ThrowingExceptionsWithoutMessageOrCause(config: Config = Config.empty) : Rule(config) {
 
@@ -47,7 +48,7 @@ class ThrowingExceptionsWithoutMessageOrCause(config: Config = Config.empty) : R
                     "This allows to provide more meaningful exceptions.",
             Debt.FIVE_MINS)
 
-    private val exceptions = valueOrDefaultCommaSeparated(EXCEPTIONS, emptyList())
+    private val exceptions = valueOrDefaultCommaSeparated(EXCEPTIONS, exceptionsDefaults)
 
     override fun visitCallExpression(expression: KtCallExpression) {
         val calleeExpressionText = expression.calleeExpression?.text
@@ -60,5 +61,15 @@ class ThrowingExceptionsWithoutMessageOrCause(config: Config = Config.empty) : R
 
     companion object {
         const val EXCEPTIONS = "exceptions"
+        private val exceptionsDefaults = listOf(
+            "ArrayIndexOutOfBoundsException",
+            "Error",
+            "Exception",
+            "IllegalMonitorStateException",
+            "NullPointerException",
+            "IndexOutOfBoundsException",
+            "RuntimeException",
+            "Throwable"
+        )
     }
 }

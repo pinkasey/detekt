@@ -1,18 +1,23 @@
 package io.github.detekt.report.xml
 
+import io.github.detekt.psi.toUnifiedString
 import io.gitlab.arturbosch.detekt.api.Detektion
 import io.gitlab.arturbosch.detekt.api.Finding
 import io.gitlab.arturbosch.detekt.api.OutputReport
-import io.gitlab.arturbosch.detekt.api.Severity
+import java.util.Locale
 
 /**
- * Generates an XML report following the structure of a Checkstyle report.
+ * Contains rule violations in an XML format. The report follows the structure of a Checkstyle report.
+ * See: https://detekt.github.io/detekt/configurations.html#output-reports
  */
 class XmlOutputReport : OutputReport() {
 
     override val ending = "xml"
 
     override val name = "Checkstyle XML report"
+
+    private val Finding.severityLabel: String
+        get() = severity.name.toLowerCase(Locale.US)
 
     override fun render(detektion: Detektion): String {
         val smells = detektion.findings.flatMap { it.value }
@@ -21,8 +26,9 @@ class XmlOutputReport : OutputReport() {
         lines += "<?xml version=\"1.0\" encoding=\"utf-8\"?>"
         lines += "<checkstyle version=\"4.3\">"
 
-        smells.groupBy { it.location.file }.forEach { (fileName, findings) ->
-            lines += "<file name=\"${fileName.toXmlString()}\">"
+        smells.groupBy { it.location.filePath.relativePath ?: it.location.filePath.absolutePath }
+            .forEach { (filePath, findings) ->
+            lines += "<file name=\"${filePath.toUnifiedString().toXmlString()}\">"
             findings.forEach {
                 lines += arrayOf(
                         "\t<error line=\"${it.location.source.line.toXmlString()}\"",
@@ -38,18 +44,6 @@ class XmlOutputReport : OutputReport() {
         lines += "</checkstyle>"
         return lines.joinToString(separator = "\n")
     }
-
-    private val Finding.severityLabel: String
-        get() = when (issue.severity) {
-            Severity.CodeSmell,
-            Severity.Style,
-            Severity.Warning,
-            Severity.Maintainability,
-            Severity.Performance -> "warning"
-            Severity.Defect -> "error"
-            Severity.Minor -> "info"
-            Severity.Security -> "fatal"
-        }
 
     private fun Any.toXmlString() = XmlEscape.escapeXml(toString().trim())
 }

@@ -8,6 +8,7 @@ import io.github.detekt.test.utils.compileContentForTest
 import org.assertj.core.api.Assertions.assertThat
 import org.jetbrains.kotlin.com.intellij.openapi.util.Key
 import org.jetbrains.kotlin.com.intellij.util.keyFMap.KeyFMap
+import org.jetbrains.kotlin.resolve.BindingContext
 import org.spekframework.spek2.Spek
 import org.spekframework.spek2.style.specification.describe
 
@@ -18,8 +19,8 @@ class QualifiedNameProcessorTest : Spek({
         it("fqNamesOfTestFiles") {
             val ktFile = compileContentForTest(code)
             val processor = QualifiedNameProcessor()
-            processor.onProcess(ktFile)
-            processor.onFinish(listOf(ktFile), result)
+            processor.onProcess(ktFile, BindingContext.EMPTY)
+            processor.onFinish(listOf(ktFile), result, BindingContext.EMPTY)
 
             val data = result.getData(fqNamesKey)
             assertThat(data).contains(
@@ -41,7 +42,7 @@ private val result = object : Detektion {
     override fun <V> getData(key: Key<V>): V? = userData.get(key)
 
     override fun <V> addData(key: Key<V>, value: V) {
-        userData = userData.plus(key, value)
+        userData = userData.plus(key, requireNotNull(value))
     }
 
     override fun add(notification: Notification) {

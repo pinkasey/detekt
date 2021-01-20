@@ -15,6 +15,7 @@ internal fun CliArgs.createSpec(output: Appendable, error: Appendable): Processi
         }
 
         project {
+            basePath = args.basePath
             inputPaths = args.inputPaths
             excludes = asPatterns(args.excludes)
             includes = asPatterns(args.includes)
@@ -22,7 +23,8 @@ internal fun CliArgs.createSpec(output: Appendable, error: Appendable): Processi
 
         rules {
             autoCorrect = args.autoCorrect
-            activateExperimentalRules = args.failFast
+            @Suppress("DEPRECATION")
+            activateAllRules = args.failFast || args.allRules
             maxIssuePolicy = RulesSpec.MaxIssuePolicy.NonSpecified // not yet supported; prefer to read from config
             excludeCorrectable = false // not yet supported; loaded from config
             runPolicy = args.toRunPolicy()

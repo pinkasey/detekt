@@ -12,6 +12,8 @@ interface Finding : Compactable, HasEntity, HasMetrics {
     val issue: Issue
     val references: List<Entity>
     val message: String
+    val severity: SeverityLevel
+        get() = SeverityLevel.WARNING
 
     /**
      * Explanation why this finding was raised.
@@ -22,14 +24,10 @@ interface Finding : Compactable, HasEntity, HasMetrics {
 /**
  * Describes a source code position.
  */
-@Suppress("DEPRECATION")
 interface HasEntity {
     val entity: Entity
     val location: Location
         get() = entity.location
-    @Deprecated("Will be removed in the future. Use queries on 'ktElement' instead.")
-    val locationAsString: String
-        get() = location.locationString
     val startPosition: SourceLocation
         get() = location.source
     val charPosition: TextLocation
@@ -38,12 +36,6 @@ interface HasEntity {
         get() = location.file
     val signature: String
         get() = entity.signature
-    @Deprecated("Will be removed in the future. Use queries on 'ktElement' instead.")
-    val name: String
-        get() = entity.name
-    @Deprecated("Will be removed in the future. Use queries on 'ktElement' instead.")
-    val inClass: String
-        get() = entity.className
 }
 
 /**
@@ -51,6 +43,7 @@ interface HasEntity {
  */
 interface HasMetrics {
     val metrics: List<Metric>
+
     /**
      * Finds the first metric matching given [type].
      */

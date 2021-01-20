@@ -17,6 +17,7 @@ import org.jetbrains.kotlin.psi.KtDotQualifiedExpression
 import org.jetbrains.kotlin.psi.KtLambdaExpression
 import org.jetbrains.kotlin.psi.KtSafeQualifiedExpression
 import org.jetbrains.kotlin.psi.ValueArgument
+import org.jetbrains.kotlin.resolve.BindingContext
 
 /**
  * `let` expressions are used extensively in our code for null-checking and chaining functions,
@@ -29,7 +30,7 @@ import org.jetbrains.kotlin.psi.ValueArgument
  * a?.let { it.plus(1) } // can be replaced with `a?.plus(1)`
  * a?.let { that -> that.plus(1) }?.let { it.plus(1) } // can be replaced with `a?.plus(1)?.plus(1)`
  * a.let { 1.plus(1) } // can be replaced with `1.plus(1)`
- * a?.let { 1.plus(1) } // can be replaced with `if (a == null) 1.plus(1)`
+ * a?.let { 1.plus(1) } // can be replaced with `if (a != null) 1.plus(1)`
  * </noncompliant>
  *
  * <compliant>
@@ -38,6 +39,8 @@ import org.jetbrains.kotlin.psi.ValueArgument
  * a?.let { it.plus(it) }
  * val b = a?.let { 1.plus(1) }
  * </compliant>
+ *
+ * @requiresTypeResolution
  */
 class UnnecessaryLet(config: Config) : Rule(config) {
 
@@ -48,6 +51,8 @@ class UnnecessaryLet(config: Config) : Rule(config) {
 
     override fun visitCallExpression(expression: KtCallExpression) {
         super.visitCallExpression(expression)
+
+        if (bindingContext == BindingContext.EMPTY) return
 
         if (!expression.isLetExpr()) return
 
@@ -60,7 +65,7 @@ class UnnecessaryLet(config: Config) : Rule(config) {
                 report(CodeSmell(issue, Entity.from(expression), "let expression can be omitted"))
             }
         } else {
-            val lambdaReferenceCount = lambdaExpr.countReferences() ?: 0
+            val lambdaReferenceCount = lambdaExpr.countReferences()
             if (lambdaReferenceCount == 0 && !expression.receiverIsUsed(bindingContext) && isNullSafeOperator) {
                 report(
                     CodeSmell(
@@ -89,13 +94,14 @@ private fun canBeReplacedWithCall(lambdaExpr: KtLambdaExpression?): Boolean {
         else -> null
     }
 
-    return if (exprReceiver != null) {
-        val isLetWithImplicitParam = lambdaParameter == null && exprReceiver.textMatches(IT_LITERAL)
-        val isLetWithExplicitParam = lambdaParameter != null && exprReceiver.textMatches(lambdaParameter)
-
-        isLetWithExplicitParam || isLetWithImplicitParam
-    } else {
-        false
+    return when {
+        exprReceiver == null -> false
+        lambdaParameter == null -> exprReceiver.textMatches(IT_LITERAL)
+        else -> {
+            val destructuringDeclaration = lambdaParameter.destructuringDeclaration
+            destructuringDeclaration?.entries?.any { exprReceiver.textMatches(it.nameAsSafeName.asString()) }
+                ?: exprReceiver.textMatches(lambdaParameter.nameAsSafeName.asString())
+        }
     }
 }
 
@@ -110,6 +116,13 @@ private fun KtBlockExpression.hasOnlyOneStatement() = this.children.size == 1
 private fun PsiElement.countVarRefs(varName: String): Int =
     children.sumBy { it.countVarRefs(varName) + if (it.textMatches(varName) && it !is ValueArgument) 1 else 0 }
 
-private fun KtLambdaExpression.countReferences(): Int? {
-    return bodyExpression?.countVarRefs(firstParameter?.text ?: IT_LITERAL)
+private fun KtLambdaExpression.countReferences(): Int {
+    val bodyExpression = bodyExpression ?: return 0
+    val destructuringDeclaration = firstParameter?.destructuringDeclaration
+    return if (destructuringDeclaration != null) {
+        destructuringDeclaration.entries.sumBy { bodyExpression.countVarRefs(it.nameAsSafeName.asString()) }
+    } else {
+        val parameterName = firstParameter?.nameAsSafeName?.asString() ?: IT_LITERAL
+        bodyExpression.countVarRefs(parameterName)
+    }
 }

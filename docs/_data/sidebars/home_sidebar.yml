@@ -17,7 +17,7 @@ entries:
     - title: Pre 1.0 Release Notes
       url: /changelog-rc.html
       output: web
-    - title: detekt Configuration File
+    - title: Configuration File
       url: /configurations.html
       output: web
     - title: Suppressing Issues in Code
@@ -25,9 +25,6 @@ entries:
       output: web
     - title: Suppressing Issues via Baseline File
       url: /baseline.html
-      output: web
-    - title: Configure Build Failure Thresholds
-      url: /failonbuild.html
       output: web
     - title: Extending detekt
       url: /extensions.html
@@ -38,11 +35,8 @@ entries:
     - title: with the Command Line Interface
       url: /cli.html
       output: web
-    - title: with Gradle Groovy DSL
-      url: /groovydsl.html
-      output: web
-    - title: with Gradle Kotlin DSL
-      url: /kotlindsl.html
+    - title: with Gradle
+      url: /gradle.html
       output: web
     - title: with Gradle Plain Task
       url: /gradletask.html
@@ -50,8 +44,8 @@ entries:
     - title: with Maven Ant Task
       url: /mavenanttask.html
       output: web
-    - title: Using Type and Symbol Solving
-      url: /type-and-symbol-solving.html
+    - title: Using Type Resolution
+      url: /type-resolution.html
       output: web
     - title: with a Git pre-commit hook
       url: /git-pre-commit-hook.html

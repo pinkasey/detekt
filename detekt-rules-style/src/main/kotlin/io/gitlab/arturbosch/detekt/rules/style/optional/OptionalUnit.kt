@@ -8,11 +8,19 @@ import io.gitlab.arturbosch.detekt.api.Issue
 import io.gitlab.arturbosch.detekt.api.Rule
 import io.gitlab.arturbosch.detekt.api.Severity
 import io.gitlab.arturbosch.detekt.rules.isOverride
+import org.jetbrains.kotlin.cfg.WhenChecker
 import org.jetbrains.kotlin.psi.KtBlockExpression
-import org.jetbrains.kotlin.psi.KtClass
+import org.jetbrains.kotlin.psi.KtExpression
+import org.jetbrains.kotlin.psi.KtIfExpression
 import org.jetbrains.kotlin.psi.KtNameReferenceExpression
 import org.jetbrains.kotlin.psi.KtNamedFunction
-import org.jetbrains.kotlin.psi.psiUtil.getStrictParentOfType
+import org.jetbrains.kotlin.psi.KtWhenExpression
+import org.jetbrains.kotlin.psi.psiUtil.siblings
+import org.jetbrains.kotlin.resolve.BindingContext
+import org.jetbrains.kotlin.resolve.bindingContextUtil.isUsedAsExpression
+import org.jetbrains.kotlin.resolve.calls.callUtil.getType
+import org.jetbrains.kotlin.types.typeUtil.isUnit
+import org.jetbrains.kotlin.utils.addToStdlib.firstIsInstanceOrNull
 
 /**
  * It is not necessary to define a return type of `Unit` on functions or to specify a lone Unit statement.
@@ -46,9 +54,7 @@ class OptionalUnit(config: Config = Config.empty) : Rule(config) {
             Debt.FIVE_MINS)
 
     override fun visitNamedFunction(function: KtNamedFunction) {
-        if (function.funKeyword == null) return
-        if (isInInterface(function)) return
-        if (function.hasDeclaredReturnType() && function.colon != null) {
+        if (function.hasDeclaredReturnType()) {
             checkFunctionWithExplicitReturnType(function)
         } else if (!function.isOverride()) {
             checkFunctionWithInferredReturnType(function)
@@ -57,13 +63,39 @@ class OptionalUnit(config: Config = Config.empty) : Rule(config) {
     }
 
     override fun visitBlockExpression(expression: KtBlockExpression) {
-        expression.statements
-                .filter { it is KtNameReferenceExpression && it.text == UNIT }
+        val statements = expression.statements
+        val lastStatement = statements.lastOrNull() ?: return
+        statements
+                .filter {
+                    when {
+                        it !is KtNameReferenceExpression || it.text != UNIT -> false
+                        it != lastStatement || bindingContext == BindingContext.EMPTY -> true
+                        !it.isUsedAsExpression(bindingContext) -> true
+                        else -> {
+                            val prev =
+                                it.siblings(forward = false, withItself = false).firstIsInstanceOrNull<KtExpression>()
+                            prev?.getType(bindingContext)?.isUnit() == true && prev.canBeUsedAsValue()
+                        }
+                    }
+                }
                 .onEach {
                     report(CodeSmell(issue, Entity.from(expression),
                             "A single Unit expression is unnecessary and can safely be removed"))
                 }
         super.visitBlockExpression(expression)
+    }
+
+    private fun KtExpression.canBeUsedAsValue(): Boolean {
+        return when (this) {
+            is KtIfExpression -> {
+                val elseExpression = `else`
+                if (elseExpression is KtIfExpression) elseExpression.canBeUsedAsValue() else elseExpression != null
+            }
+            is KtWhenExpression ->
+                entries.lastOrNull()?.elseKeyword != null || WhenChecker.getMissingCases(this, bindingContext).isEmpty()
+            else ->
+                true
+        }
     }
 
     private fun checkFunctionWithExplicitReturnType(function: KtNamedFunction) {
@@ -80,9 +112,6 @@ class OptionalUnit(config: Config = Config.empty) : Rule(config) {
             report(CodeSmell(issue, Entity.from(referenceExpression), createMessage(function)))
         }
     }
-
-    private fun isInInterface(function: KtNamedFunction) =
-        function.getStrictParentOfType<KtClass>()?.isInterface() ?: false
 
     private fun createMessage(function: KtNamedFunction) = "The function ${function.name} " +
             "defines a return type of Unit. This is unnecessary and can safely be removed."

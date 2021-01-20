@@ -9,6 +9,9 @@ import javax.xml.stream.XMLStreamWriter
 
 internal class BaselineFormat {
 
+    private val XMLStreamException.positions
+        get() = location.lineNumber to location.columnNumber
+
     class InvalidState(msg: String, error: Throwable) : IllegalStateException(msg, error)
 
     fun read(path: Path): Baseline {
@@ -27,7 +30,7 @@ internal class BaselineFormat {
 
     fun write(baseline: Baseline, path: Path) {
         try {
-            Files.newBufferedWriter(path).use {
+            Files.newBufferedWriter(path).addFinalNewLine().use {
                 it.streamXml().prettyPrinter().save(baseline)
             }
         } catch (error: XMLStreamException) {
@@ -35,9 +38,6 @@ internal class BaselineFormat {
             throw InvalidState("Error on position $line:$column while writing the baseline xml file!", error)
         }
     }
-
-    private val XMLStreamException.positions
-        get() = location.lineNumber to location.columnNumber
 
     private fun XMLStreamWriter.save(baseline: Baseline) {
         document {

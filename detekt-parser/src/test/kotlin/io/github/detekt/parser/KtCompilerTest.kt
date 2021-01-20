@@ -1,28 +1,40 @@
 package io.github.detekt.parser
 
+import io.github.detekt.psi.BASE_PATH
 import io.github.detekt.psi.LINE_SEPARATOR
 import io.github.detekt.psi.RELATIVE_PATH
-import io.github.detekt.test.utils.resource
+import io.github.detekt.test.utils.resourceAsPath
 import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.Assertions.assertThatIllegalArgumentException
-import org.assertj.core.api.Assertions.assertThatIllegalStateException
+import org.jetbrains.kotlin.com.intellij.psi.PsiErrorElement
+import org.jetbrains.kotlin.psi.KtTreeVisitorVoid
 import org.spekframework.spek2.Spek
+import org.spekframework.spek2.lifecycle.CachingMode
 import org.spekframework.spek2.style.specification.describe
-import java.nio.file.Paths
 
 class KtCompilerTest : Spek({
 
     describe("Kotlin Compiler") {
 
-        val path = Paths.get(resource("/cases"))
-        val ktCompiler = KtCompiler()
+        val path = resourceAsPath("/cases")
+        val ktCompiler by memoized(CachingMode.SCOPE) { KtCompiler() }
 
         it("Kotlin file has extra user data") {
             val ktFile = ktCompiler.compile(path, path.resolve("Default.kt"))
 
             assertThat(ktFile.getUserData(LINE_SEPARATOR)).isEqualTo(System.lineSeparator())
             assertThat(ktFile.getUserData(RELATIVE_PATH))
-                .isEqualTo(path.fileName.resolve("Default.kt").toString())
+                .isEqualTo("Default.kt")
+            assertThat(ktFile.getUserData(BASE_PATH))
+                .endsWith("cases")
+        }
+
+        it("Kotlin file does not store extra data for relative path if not provided") {
+            val ktFile = ktCompiler.compile(null, path.resolve("Default.kt"))
+
+            assertThat(ktFile.getUserData(LINE_SEPARATOR)).isEqualTo(System.lineSeparator())
+            assertThat(ktFile.getUserData(RELATIVE_PATH)).isNull()
+            assertThat(ktFile.getUserData(BASE_PATH)).isNull()
         }
 
         it("throws an exception for an invalid sub path") {
@@ -32,10 +44,18 @@ class KtCompilerTest : Spek({
                 .withMessageEndingWith(") should be a regular file!")
         }
 
-        it("throws an exception for a css file") {
-            val cssPath = Paths.get(resource("css"))
-            assertThatIllegalStateException()
-                .isThrownBy { ktCompiler.compile(cssPath, cssPath.resolve("test.css")) }
+        it("parses with errors for non kotlin files") {
+            val cssPath = resourceAsPath("css")
+            val ktFile = ktCompiler.compile(cssPath, cssPath.resolve("test.css"))
+
+            val errors = mutableListOf<PsiErrorElement>()
+            ktFile.accept(object : KtTreeVisitorVoid() {
+                override fun visitErrorElement(element: PsiErrorElement) {
+                    errors.add(element)
+                }
+            })
+
+            assertThat(errors).isNotEmpty()
         }
     }
 

@@ -7,7 +7,7 @@ import org.spekframework.spek2.style.specification.describe
 
 class UseArrayLiteralsInAnnotationsSpec : Spek({
 
-    val subject = UseArrayLiteralsInAnnotations()
+    val subject by memoized { UseArrayLiteralsInAnnotations() }
 
     describe("suggests replacing arrayOf with [] syntax") {
 
@@ -16,7 +16,7 @@ class UseArrayLiteralsInAnnotationsSpec : Spek({
             annotation class Test(val values: Array<String>)
             @Test(arrayOf("value"))
             fun test() = Unit
-        """.trimIndent())
+        """)
 
             assertThat(findings).hasSize(1)
         }
@@ -26,7 +26,7 @@ class UseArrayLiteralsInAnnotationsSpec : Spek({
             annotation class Test(val values: Array<String>)
             @Test(["value"])
             fun test() = Unit
-        """.trimIndent())
+        """)
 
             assertThat(findings).isEmpty()
         }

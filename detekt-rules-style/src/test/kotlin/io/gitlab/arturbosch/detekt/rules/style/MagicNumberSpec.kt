@@ -11,7 +11,6 @@ import org.assertj.core.api.Assertions.assertThatExceptionOfType
 import org.spekframework.spek2.Spek
 import org.spekframework.spek2.style.specification.describe
 
-@Suppress("LargeClass")
 class MagicNumberSpec : Spek({
 
     describe("Magic Number rule") {
@@ -710,7 +709,7 @@ class MagicNumberSpec : Spek({
 
         context("a number as part of a range") {
 
-            val magicNumberInRangeExpressions = listOf(
+            listOf(
                     "val range = 1..27",
                     "val range = (1..27)",
                     "val range = 27 downTo 1",
@@ -718,9 +717,7 @@ class MagicNumberSpec : Spek({
                     "val inRange = 1 in 1..27",
                     "val inRange = (1 in 27 downTo 0 step 1)",
                     "val inRange = (1..27 step 1).last"
-            )
-
-            magicNumberInRangeExpressions.forEach { codeWithMagicNumberInRange ->
+            ).forEach { codeWithMagicNumberInRange ->
                 it("'$codeWithMagicNumberInRange' reports a code smell by default") {
                     val code = codeWithMagicNumberInRange
                     assertThat(MagicNumber().lint(code)).hasSize(1)
@@ -764,9 +761,11 @@ class MagicNumberSpec : Spek({
 
         context("meaningful variables - #1536") {
 
-            val rule = MagicNumber(TestConfig(mapOf(
-                MagicNumber.IGNORE_LOCAL_VARIABLES to "true",
-                MagicNumber.IGNORE_NAMED_ARGUMENT to "true")))
+            val rule by memoized {
+                MagicNumber(TestConfig(mapOf(
+                    MagicNumber.IGNORE_LOCAL_VARIABLES to "true",
+                    MagicNumber.IGNORE_NAMED_ARGUMENT to "true")))
+            }
 
             it("should report 3") {
                 assertThat(rule.compileAndLint("""fun bar() { foo(3) }; fun foo(n: Int) {}""")).hasSize(1)
@@ -778,6 +777,50 @@ class MagicNumberSpec : Spek({
 
             it("should not report 3 due to scoped describing variable") {
                 assertThat(rule.compileAndLint("""fun bar() { val a = 3; foo(a) }; fun foo(n: Int) {}""")).isEmpty()
+            }
+        }
+
+        context("with extension function") {
+
+            val rule by memoized {
+                MagicNumber(
+                    TestConfig(
+                        mapOf(
+                            MagicNumber.IGNORE_EXTENSION_FUNCTIONS to "true"
+                        )
+                    )
+                )
+            }
+
+            it("should not report when function") {
+                val code = """
+                    fun Int.dp() = this + 1
+
+                    val a = 500.dp()
+                """
+
+                assertThat(rule.compileAndLint(code)).isEmpty()
+            }
+
+            it("should not report when property") {
+                val code = """
+                    val Int.dp: Int
+                      get() = this + 1
+
+                    val a = 500.dp
+                """
+
+                assertThat(rule.compileAndLint(code)).isEmpty()
+            }
+
+            it("should report the argument") {
+                val code = """
+                    fun Int.dp(a: Int) = this + a
+
+                    val a = 500.dp(400)
+                """
+
+                assertThat(rule.compileAndLint(code)).hasSize(1)
             }
         }
     }

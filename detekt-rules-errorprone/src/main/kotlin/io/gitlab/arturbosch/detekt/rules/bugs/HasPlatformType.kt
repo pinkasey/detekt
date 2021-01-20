@@ -16,11 +16,12 @@ import org.jetbrains.kotlin.psi.psiUtil.containingClassOrObject
 import org.jetbrains.kotlin.resolve.BindingContext
 import org.jetbrains.kotlin.types.isFlexible
 
-/**
- * Platform types must be declared explicitly in public APIs to prevent unexpected errors.
- *
+/*
  * Based on code from Kotlin project:
  * https://github.com/JetBrains/kotlin/blob/1.3.50/idea/src/org/jetbrains/kotlin/idea/intentions/SpecifyTypeExplicitlyIntention.kt#L86-L107
+ */
+/**
+ * Platform types must be declared explicitly in public APIs to prevent unexpected errors.
  *
  * <noncompliant>
  * class Person {
@@ -33,8 +34,9 @@ import org.jetbrains.kotlin.types.isFlexible
  *   fun apiCall(): String = System.getProperty("propertyName")
  * }
  * </compliant>
+ *
+ * @requiresTypeResolution
  */
-
 class HasPlatformType(config: Config) : Rule(config) {
 
     override val issue = Issue(
@@ -46,9 +48,9 @@ class HasPlatformType(config: Config) : Rule(config) {
 
     override fun visitKtElement(element: KtElement) {
         super.visitKtElement(element)
+        if (bindingContext == BindingContext.EMPTY) return
 
-        if (bindingContext != BindingContext.EMPTY && element is KtCallableDeclaration &&
-            element.hasImplicitPlatformType()) {
+        if (element is KtCallableDeclaration && element.hasImplicitPlatformType()) {
             report(
                 CodeSmell(
                     issue,
@@ -59,19 +61,21 @@ class HasPlatformType(config: Config) : Rule(config) {
         }
     }
 
-    @Suppress("ReturnCount", "ComplexMethod")
     private fun KtCallableDeclaration.hasImplicitPlatformType(): Boolean {
-        when (this) {
-            is KtFunction -> if (isLocal || hasDeclaredReturnType()) return false
-            is KtProperty -> if (isLocal || typeReference != null) return false
-            else -> return false
+        fun isPlatFormType(): Boolean {
+            if (containingClassOrObject?.isLocal == true) return false
+            val callable =
+                bindingContext[BindingContext.DECLARATION_TO_DESCRIPTOR, this] as? CallableDescriptor ?: return false
+
+            val isPublicApi = callable.visibility.isPublicAPI
+            val isReturnTypeFlexible = callable.returnType?.isFlexible()
+            return isPublicApi && isReturnTypeFlexible == true
         }
 
-        if (containingClassOrObject?.isLocal == true) return false
-
-        val callable =
-            bindingContext[BindingContext.DECLARATION_TO_DESCRIPTOR, this] as? CallableDescriptor ?: return false
-        if (!callable.visibility.isPublicAPI) return false
-        return callable.returnType?.isFlexible() ?: return false
+        return when (this) {
+            is KtFunction -> !isLocal && !hasDeclaredReturnType() && isPlatFormType()
+            is KtProperty -> !isLocal && typeReference == null && isPlatFormType()
+            else -> false
+        }
     }
 }

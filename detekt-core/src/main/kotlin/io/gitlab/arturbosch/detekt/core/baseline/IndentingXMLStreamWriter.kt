@@ -43,7 +43,6 @@ internal class IndentingXMLStreamWriter(
         }
     }
 
-    @Suppress("RedundantLambdaArrow")
     private fun writeIndent() {
         if (indentationDepth > 0) {
             (0 until indentationDepth).forEach { _ -> super.writeCharacters(indent) }
@@ -62,11 +61,6 @@ internal class IndentingXMLStreamWriter(
 
     override fun writeStartDocument(encoding: String, version: String) {
         super.writeStartDocument(encoding, version)
-        super.writeCharacters("\n")
-    }
-
-    override fun writeEndDocument() {
-        super.writeEndDocument()
         super.writeCharacters("\n")
     }
 

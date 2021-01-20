@@ -16,7 +16,10 @@ import io.gitlab.arturbosch.detekt.rules.isMainFunction
 import io.gitlab.arturbosch.detekt.rules.isOpen
 import io.gitlab.arturbosch.detekt.rules.isOperator
 import io.gitlab.arturbosch.detekt.rules.isOverride
+import org.jetbrains.kotlin.descriptors.FunctionDescriptor
+import org.jetbrains.kotlin.descriptors.PropertyDescriptor
 import org.jetbrains.kotlin.lexer.KtSingleValueToken
+import org.jetbrains.kotlin.lexer.KtTokens
 import org.jetbrains.kotlin.name.Name
 import org.jetbrains.kotlin.psi.KtClass
 import org.jetbrains.kotlin.psi.KtFile
@@ -28,6 +31,7 @@ import org.jetbrains.kotlin.psi.KtOperationReferenceExpression
 import org.jetbrains.kotlin.psi.KtParameter
 import org.jetbrains.kotlin.psi.KtPrimaryConstructor
 import org.jetbrains.kotlin.psi.KtProperty
+import org.jetbrains.kotlin.psi.KtPropertyDelegate
 import org.jetbrains.kotlin.psi.KtReferenceExpression
 import org.jetbrains.kotlin.psi.KtSecondaryConstructor
 import org.jetbrains.kotlin.psi.psiUtil.containingClassOrObject
@@ -36,6 +40,7 @@ import org.jetbrains.kotlin.psi.psiUtil.isPrivate
 import org.jetbrains.kotlin.resolve.BindingContext
 import org.jetbrains.kotlin.resolve.calls.callUtil.getResolvedCall
 import org.jetbrains.kotlin.types.expressions.OperatorConventions
+import org.jetbrains.kotlin.util.OperatorNameConventions
 
 /**
  * Reports unused private properties, function parameters and functions.
@@ -44,19 +49,16 @@ import org.jetbrains.kotlin.types.expressions.OperatorConventions
  *
  * @configuration allowedNames - unused private member names matching this regex are ignored
  * (default: `'(_|ignored|expected|serialVersionUID)'`)
+ * @active since v1.16.0
  */
 class UnusedPrivateMember(config: Config = Config.empty) : Rule(config) {
-
-    companion object {
-        const val ALLOWED_NAMES_PATTERN = "allowedNames"
-    }
 
     override val defaultRuleIdAliases: Set<String> = setOf("UNUSED_VARIABLE", "UNUSED_PARAMETER", "unused")
 
     override val issue: Issue = Issue("UnusedPrivateMember",
-            Severity.Maintainability,
-            "Private member is unused.",
-            Debt.FIVE_MINS)
+        Severity.Maintainability,
+        "Private member is unused.",
+        Debt.FIVE_MINS)
 
     private val allowedNames by LazyRegex(ALLOWED_NAMES_PATTERN, "(_|ignored|expected|serialVersionUID)")
 
@@ -70,6 +72,10 @@ class UnusedPrivateMember(config: Config = Config.empty) : Rule(config) {
     private fun KtFile.acceptUnusedMemberVisitor(visitor: UnusedMemberVisitor) {
         accept(visitor)
         visitor.getUnusedReports(issue).forEach { report(it) }
+    }
+
+    companion object {
+        const val ALLOWED_NAMES_PATTERN = "allowedNames"
     }
 }
 
@@ -85,32 +91,53 @@ private class UnusedFunctionVisitor(
 
     private val functionDeclarations = mutableMapOf<String, MutableList<KtFunction>>()
     private val functionReferences = mutableMapOf<String, MutableList<KtReferenceExpression>>()
+    private val propertyDelegates = mutableListOf<KtPropertyDelegate>()
 
     override fun getUnusedReports(issue: Issue): List<CodeSmell> {
-        return functionDeclarations.flatMap { (name, functions) ->
+        val propertyDelegateResultingDescriptors by lazy(LazyThreadSafetyMode.NONE) {
+            propertyDelegates.flatMap { it.resultingDescriptors() }
+        }
+        return functionDeclarations.flatMap { (functionName, functions) ->
             val isOperator = functions.any { it.isOperator() }
-            val references = functionReferences[name].orEmpty()
+            val references = functionReferences[functionName].orEmpty()
             val unusedFunctions = when {
                 (functions.size > 1 || isOperator) && bindingContext != BindingContext.EMPTY -> {
+                    val functionNameAsName = Name.identifier(functionName)
                     val referencesViaOperator = if (isOperator) {
-                        val operatorToken = OperatorConventions.getOperationSymbolForName(Name.identifier(name))
+                        val operatorToken = OperatorConventions.getOperationSymbolForName(functionNameAsName)
                         val operatorValue = (operatorToken as? KtSingleValueToken)?.value
-                        operatorValue?.let { functionReferences[it] }.orEmpty()
+                        val directReferences = operatorValue?.let { functionReferences[it] }.orEmpty()
+                        val assignmentReferences = when (operatorToken) {
+                            KtTokens.PLUS,
+                            KtTokens.MINUS,
+                            KtTokens.MUL,
+                            KtTokens.DIV,
+                            KtTokens.PERC -> operatorValue?.let { functionReferences["$it="] }.orEmpty()
+                            else -> emptyList()
+                        }
+                        directReferences + assignmentReferences
                     } else {
                         emptyList()
                     }
-                    val referenceDescriptors = (references + referencesViaOperator).mapNotNull {
-                        it.getResolvedCall(bindingContext)?.resultingDescriptor
-                    }
-                    functions.filter {
-                        bindingContext[BindingContext.DECLARATION_TO_DESCRIPTOR, it] !in referenceDescriptors
+                    val referenceDescriptors = (references + referencesViaOperator)
+                        .mapNotNull { it.getResolvedCall(bindingContext)?.resultingDescriptor }
+                        .map { it.original }
+                        .let {
+                            if (functionNameAsName in OperatorNameConventions.DELEGATED_PROPERTY_OPERATORS) {
+                                it + propertyDelegateResultingDescriptors
+                            } else {
+                                it
+                            }
+                        }
+                    functions.filterNot {
+                        bindingContext[BindingContext.DECLARATION_TO_DESCRIPTOR, it] in referenceDescriptors
                     }
                 }
                 references.isEmpty() -> functions
                 else -> emptyList()
             }
             unusedFunctions.map {
-                CodeSmell(issue, Entity.from(it), "Private function $name is unused.")
+                CodeSmell(issue, Entity.from(it), "Private function $functionName is unused.")
             }
         }
     }
@@ -130,6 +157,20 @@ private class UnusedFunctionVisitor(
         if (!allowedNames.matches(name)) {
             functionDeclarations.getOrPut(name) { mutableListOf() }.add(function)
         }
+    }
+
+    private fun KtPropertyDelegate.resultingDescriptors(): List<FunctionDescriptor> {
+        val property = this.parent as? KtProperty ?: return emptyList()
+        val propertyDescriptor =
+            bindingContext[BindingContext.DECLARATION_TO_DESCRIPTOR, property] as? PropertyDescriptor
+        return listOfNotNull(propertyDescriptor?.getter, propertyDescriptor?.setter).mapNotNull {
+            bindingContext[BindingContext.DELEGATED_PROPERTY_RESOLVED_CALL, it]?.resultingDescriptor
+        }
+    }
+
+    override fun visitPropertyDelegate(delegate: KtPropertyDelegate) {
+        super.visitPropertyDelegate(delegate)
+        propertyDelegates.add(delegate)
     }
 
     /*
@@ -204,7 +245,7 @@ private class UnusedParameterVisitor(allowedNames: Regex) : UnusedMemberVisitor(
     private fun KtNamedFunction.isRelevant() = !isAllowedToHaveUnusedParameters()
 
     private fun KtNamedFunction.isAllowedToHaveUnusedParameters() =
-            isAbstract() || isOpen() || isOverride() || isOperator() || isMainFunction() || isExternal() || isExpect()
+        isAbstract() || isOpen() || isOverride() || isOperator() || isMainFunction() || isExternal() || isExpect()
 }
 
 private class UnusedPropertyVisitor(allowedNames: Regex) : UnusedMemberVisitor(allowedNames) {
@@ -214,9 +255,11 @@ private class UnusedPropertyVisitor(allowedNames: Regex) : UnusedMemberVisitor(a
 
     override fun getUnusedReports(issue: Issue): List<CodeSmell> {
         return properties
-                .filter { it.nameAsSafeName.identifier !in nameAccesses }
-                .map { CodeSmell(issue, Entity.from(it),
-                    "Private property ${it.nameAsSafeName.identifier} is unused.") }
+            .filter { it.nameAsSafeName.identifier !in nameAccesses }
+            .map {
+                CodeSmell(issue, Entity.from(it),
+                    "Private property ${it.nameAsSafeName.identifier} is unused.")
+            }
     }
 
     override fun visitParameter(parameter: KtParameter) {
@@ -236,8 +279,8 @@ private class UnusedPropertyVisitor(allowedNames: Regex) : UnusedMemberVisitor(a
     override fun visitPrimaryConstructor(constructor: KtPrimaryConstructor) {
         super.visitPrimaryConstructor(constructor)
         constructor.valueParameters
-                .filter { (it.isPrivate() || !it.hasValOrVar()) && it.containingClassOrObject?.isExpect() == false }
-                .forEach { maybeAddUnusedProperty(it) }
+            .filter { (it.isPrivate() || !it.hasValOrVar()) && it.containingClassOrObject?.isExpect() == false }
+            .forEach { maybeAddUnusedProperty(it) }
     }
 
     override fun visitSecondaryConstructor(constructor: KtSecondaryConstructor) {

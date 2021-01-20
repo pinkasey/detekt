@@ -23,7 +23,9 @@ class StyleGuideProvider : DefaultRuleSetProvider {
     override fun instance(config: Config): RuleSet = RuleSet(
         ruleSetId,
         listOf(
+            ClassOrdering(config),
             CollapsibleIfStatements(config),
+            DestructuringDeclarationWithTooManyEntries(config),
             ReturnCount(config),
             ThrowsCount(config),
             NewLineAtEndOfFile(config),
@@ -77,8 +79,15 @@ class StyleGuideProvider : DefaultRuleSetProvider {
             UseCheckOrError(config),
             UseIfInsteadOfWhen(config),
             RedundantExplicitType(config),
+            LibraryEntitiesShouldNotBePublic(config),
             LibraryCodeMustSpecifyReturnType(config),
-            UseArrayLiteralsInAnnotations(config)
+            UseArrayLiteralsInAnnotations(config),
+            UseEmptyCounterpart(config),
+            UseCheckNotNull(config),
+            UseRequireNotNull(config),
+            RedundantHigherOrderMapUsage(config),
+            UseIfEmptyOrIfBlank(config),
+            MultilineLambdaItParameter(config)
         )
     )
 }

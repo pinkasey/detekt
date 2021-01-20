@@ -1,7 +1,7 @@
 # Contributing to detekt
 
 - Read [this article](https://chris.beams.io/posts/git-commit/) before writing commit messages
-- Use `gradle build -x dokka` to build the source but exclude documentation jar generating to save time.
+- Use `gradle build -x dokkaJekyll` to build the source but exclude documentation jar generating to save time.
 - `gradle detekt` should not report any errors
 - This repository follows the [Kotlin Coding Conventions](https://kotlinlang.org/docs/reference/coding-conventions.html) which are enforced by ktlint when running `gradle detekt`.
 - Make sure your IDE uses [ktlint](https://github.com/pinterest/ktlint) formatting rules as well as the settings in [.editorconfig](../.editorconfig)
@@ -90,10 +90,5 @@ Following warning is expected until [Jekyll](https://github.com/jekyll/jekyll/is
 ### Release process
 
 - `./scripts/github-milestone-report.main.kts` - creates changelog
-- `gradle increment<Patch|Minor|Major>`
-- `gradle build publishToMavenLocal -x detekt -x test` - publish to local first
-- `gradle build` - now fully build with tests and self-analysis.
-- `gradle bintrayUpload` - uploads artifacts to Bintray
-- `gradle publishPlugins` - uploads the Gradle Plugin to the Plugin Repositories
-- `gradle githubRelease` - creates a tag for the current version with changelog and cli jar
-- `gradle applyDocVersion applySelfAnalysisVersion`
+- `gradle increment<Patch|Minor|Major>` - update version
+- `./scripts/release.sh` - publish all artifacts

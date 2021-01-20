@@ -1,3 +1,9 @@
+import org.jetbrains.kotlin.gradle.plugin.getKotlinPluginVersion
+
+plugins {
+    module
+}
+
 dependencies {
     api(kotlin("compiler-embeddable"))
     implementation(project(":detekt-psi-utils"))
@@ -5,7 +11,7 @@ dependencies {
 }
 
 tasks.withType<Test> {
-    systemProperty("kotlinVersion", embeddedKotlinVersion)
+    systemProperty("kotlinVersion", getKotlinPluginVersion() ?: embeddedKotlinVersion)
 
     doFirst {
         systemProperty("testClasspath", classpath.joinToString(";"))

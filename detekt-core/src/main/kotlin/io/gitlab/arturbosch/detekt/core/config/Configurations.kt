@@ -3,10 +3,6 @@ package io.gitlab.arturbosch.detekt.core.config
 import io.github.detekt.tooling.api.spec.ConfigSpec
 import io.github.detekt.tooling.api.spec.ProcessingSpec
 import io.gitlab.arturbosch.detekt.api.Config
-import io.gitlab.arturbosch.detekt.api.internal.CompositeConfig
-import io.gitlab.arturbosch.detekt.api.internal.DisabledAutoCorrectConfig
-import io.gitlab.arturbosch.detekt.api.internal.FailFastConfig
-import io.gitlab.arturbosch.detekt.api.internal.YamlConfig
 import java.net.URI
 import java.net.URL
 import java.nio.file.FileSystemNotFoundException
@@ -19,23 +15,13 @@ internal fun ProcessingSpec.loadConfiguration(): Config = with(configSpec) {
         resources.isNotEmpty() -> parseResourceConfig(resources)
         else -> null
     }
-    var defaultConfig: Config? = null
 
     if (useDefaultConfig) {
-        defaultConfig = DefaultConfig.newInstance()
-        declaredConfig = CompositeConfig(declaredConfig ?: defaultConfig, defaultConfig)
-    }
-
-    if (rulesSpec.activateExperimentalRules) {
-        val initializedDefaultConfig = defaultConfig ?: DefaultConfig.newInstance()
-        declaredConfig = FailFastConfig(
-            declaredConfig ?: initializedDefaultConfig,
-            initializedDefaultConfig
-        )
-    }
-
-    if (!rulesSpec.autoCorrect) {
-        declaredConfig = DisabledAutoCorrectConfig(declaredConfig ?: DefaultConfig.newInstance())
+        declaredConfig = if (declaredConfig == null) {
+            DefaultConfig.newInstance()
+        } else {
+            CompositeConfig(declaredConfig, DefaultConfig.newInstance())
+        }
     }
 
     return declaredConfig ?: DefaultConfig.newInstance()
@@ -62,6 +48,7 @@ private fun parsePathConfig(paths: Collection<Path>): Config =
 internal fun ConfigSpec.extractUris(): Collection<URI> {
     fun initFileSystem(uri: URI) {
         runCatching {
+            @Suppress("SwallowedException") // Create file system inferred from URI if it does not exist.
             try {
                 FileSystems.getFileSystem(uri)
             } catch (e: FileSystemNotFoundException) {

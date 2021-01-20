@@ -7,7 +7,7 @@ import io.gitlab.arturbosch.detekt.test.TestConfig
 import io.gitlab.arturbosch.detekt.test.assertThat
 import io.gitlab.arturbosch.detekt.test.compileAndLintWithContext
 import io.gitlab.arturbosch.detekt.test.lint
-import org.assertj.core.api.Assertions
+import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.Assertions.assertThatExceptionOfType
 import org.jetbrains.kotlin.cli.jvm.compiler.KotlinCoreEnvironment
 import org.spekframework.spek2.Spek
@@ -699,7 +699,7 @@ class UnusedPrivateMemberSpec : Spek({
 
             val lint = subject.lint(code)
 
-            Assertions.assertThat(lint.first().message).startsWith("Function parameter")
+            assertThat(lint.first().message).startsWith("Function parameter")
         }
 
         it("are specific for local variables") {
@@ -709,7 +709,7 @@ class UnusedPrivateMemberSpec : Spek({
 
             val lint = subject.lint(code)
 
-            Assertions.assertThat(lint.first().message).startsWith("Private property")
+            assertThat(lint.first().message).startsWith("Private property")
         }
 
         it("are specific for private functions") {
@@ -723,7 +723,7 @@ class UnusedPrivateMemberSpec : Spek({
 
             val lint = subject.lint(code)
 
-            Assertions.assertThat(lint.first().message).startsWith("Private function")
+            assertThat(lint.first().message).startsWith("Private function")
         }
     }
 
@@ -744,7 +744,7 @@ class UnusedPrivateMemberSpec : Spek({
             val lint = subject.lint(code)
 
             assertThat(lint).hasSize(1)
-            Assertions.assertThat(lint[0].entity.signature).isEqualTo("Test.kt\$unusedWithoutAnnotation: String")
+            assertThat(lint[0].entity.signature).isEqualTo("Test.kt\$unusedWithoutAnnotation: String")
         }
 
         it("does not report parameters in annotated function") {
@@ -831,7 +831,7 @@ class UnusedPrivateMemberSpec : Spek({
             val lint = subject.lint(code)
 
             assertThat(lint).hasSize(1)
-            Assertions.assertThat(lint[0].entity.signature).isEqualTo("Test.kt\$Test\$private val bar: String")
+            assertThat(lint[0].entity.signature).isEqualTo("Test.kt\$Test\$private val bar: String")
         }
 
         it("does not report private constructor properties in annotated class") {
@@ -900,7 +900,7 @@ class UnusedPrivateMemberSpec : Spek({
             val lint = subject.lint(code)
 
             assertThat(lint).hasSize(1)
-            Assertions.assertThat(lint[0].entity.signature).isEqualTo("Test.kt\$Test\$private val bar: String")
+            assertThat(lint[0].entity.signature).isEqualTo("Test.kt\$Test\$private val bar: String")
         }
 
         it("does not report private properties in annotated class") {
@@ -967,7 +967,7 @@ class UnusedPrivateMemberSpec : Spek({
             val findings = subject.lint(code)
 
             assertThat(findings).hasSize(1)
-            Assertions.assertThat(findings[0].entity.signature).isEqualTo("Test.kt\$private fun foo(): String")
+            assertThat(findings[0].entity.signature).isEqualTo("Test.kt\$private fun foo(): String")
         }
 
         it("does not report private functions in annotated class") {
@@ -1049,6 +1049,27 @@ class UnusedPrivateMemberSpec : Spek({
                     companion object {
                         private operator fun Date.plus(diff: Long): Date = Date(this.time + diff)
                     }
+                }
+            """
+            assertThat(subject.compileAndLintWithContext(env, code)).isEmpty()
+        }
+
+        it("does not report used operator methods when used with the equal sign") {
+            val code = """
+                class Test {
+                    fun f() {
+                        var number: Int? = 0
+                        number += 1
+                        number -= 1
+                        number *= 1
+                        number /= 1
+                        number %= 1
+                    }
+                    private operator fun Int?.plus(other: Int) = 1
+                    private operator fun Int?.minus(other: Int) = 2
+                    private operator fun Int?.times(other: Int) = 3
+                    private operator fun Int?.div(other: Int) = 4
+                    private operator fun Int?.rem(other: Int) = 5
                 }
             """
             assertThat(subject.compileAndLintWithContext(env, code)).isEmpty()
@@ -1157,7 +1178,7 @@ class UnusedPrivateMemberSpec : Spek({
             """
             val findings = subject.compileAndLintWithContext(env, code)
             assertThat(findings).hasSize(1).hasSourceLocations(
-                    SourceLocation(3,5)
+                SourceLocation(3, 5)
             )
         }
     }
@@ -1192,4 +1213,42 @@ class UnusedPrivateMemberSpec : Spek({
         }
     }
 
+    describe("getValue/setValue operator functions - #3128") {
+
+        it("does not report used private getValue/setValue operator functions") {
+            val code = """
+                import kotlin.reflect.KProperty
+                
+                class Test {
+                    var delegated by "Hello"
+
+                    private operator fun String.getValue(test: Test, prop: KProperty<*>): String {
+                        return "working"
+                    }
+                    
+                    private operator fun String.setValue(test: Test, prop: KProperty<*>, value: String) {
+                        error("setValue")
+                    }
+                }
+            """
+            assertThat(subject.compileAndLintWithContext(env, code)).hasSize(0)
+        }
+
+        it("reports unused private getValue/setValue operator functions") {
+            val code = """
+                import kotlin.reflect.KProperty
+                
+                class Test {
+                    private operator fun String.getValue(test: Test, prop: KProperty<*>): String {
+                        return "working"
+                    }
+                    
+                    private operator fun String.setValue(test: Test, prop: KProperty<*>, value: String) {
+                        error("setValue")
+                    }
+                }
+            """
+            assertThat(subject.compileAndLintWithContext(env, code)).hasSize(2)
+        }
+    }
 })

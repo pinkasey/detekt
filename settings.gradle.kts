@@ -1,5 +1,6 @@
 rootProject.name = "detekt"
 include(
+    "custom-checks",
     "detekt-api",
     "detekt-cli",
     "detekt-bom",
@@ -11,6 +12,7 @@ include(
     "detekt-parser",
     "detekt-psi-utils",
     "detekt-report-html",
+    "detekt-report-sarif",
     "detekt-report-txt",
     "detekt-report-xml",
     "detekt-rules",

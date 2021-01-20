@@ -8,6 +8,7 @@ import io.gitlab.arturbosch.detekt.api.RuleSetId
 import org.jetbrains.kotlin.com.intellij.openapi.util.Key
 import org.jetbrains.kotlin.com.intellij.util.keyFMap.KeyFMap
 import org.jetbrains.kotlin.psi.KtFile
+import org.jetbrains.kotlin.resolve.BindingContext
 
 class MetricProcessorTester(
     private val file: KtFile,
@@ -16,10 +17,10 @@ class MetricProcessorTester(
 
     fun <T : Any> test(processor: AbstractProcessor, key: Key<T>): T {
         with(processor) {
-            onStart(listOf(file))
-            onProcess(file)
-            onProcessComplete(file, emptyMap())
-            onFinish(listOf(file), result)
+            onStart(listOf(file), BindingContext.EMPTY)
+            onProcess(file, BindingContext.EMPTY)
+            onProcessComplete(file, emptyMap(), BindingContext.EMPTY)
+            onFinish(listOf(file), result, BindingContext.EMPTY)
         }
         return checkNotNull(result.getData(key))
     }
@@ -37,7 +38,7 @@ private class MetricResults : Detektion {
     override fun <V> getData(key: Key<V>): V? = data.get(key)
 
     override fun <V> addData(key: Key<V>, value: V) {
-        data = data.plus(key, value)
+        data = data.plus(key, requireNotNull(value))
     }
 
     override fun add(notification: Notification) {

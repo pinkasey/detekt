@@ -1,11 +1,12 @@
 package io.gitlab.arturbosch.detekt.api
 
-import io.github.detekt.psi.absolutePath
+import io.gitlab.arturbosch.detekt.api.Config.Companion.SEVERITY_KEY
 import io.gitlab.arturbosch.detekt.api.internal.BaseRule
 import io.gitlab.arturbosch.detekt.api.internal.PathFilters
 import io.gitlab.arturbosch.detekt.api.internal.createPathFilters
 import io.gitlab.arturbosch.detekt.api.internal.isSuppressedBy
 import org.jetbrains.kotlin.psi.KtFile
+import java.util.Locale
 
 /**
  * A rule defines how one specific code structure should look like. If code is found
@@ -38,7 +39,7 @@ abstract class Rule(
     val aliases: Set<String> get() = valueOrDefault("aliases", defaultRuleIdAliases)
 
     /**
-     * The default names which can be used instead of this #ruleId to refer to this rule in suppression's.
+     * The default names which can be used instead of this [ruleId] to refer to this rule in suppression's.
      *
      * When overriding this property make sure to meet following structure for detekt-generator to pick
      * it up and generate documentation for aliases:
@@ -57,17 +58,28 @@ abstract class Rule(
     }
 
     override fun visitCondition(root: KtFile): Boolean =
-        active &&
-            shouldRunOnGivenFile(root) &&
-            !root.isSuppressedBy(ruleId, aliases, ruleSetId)
+        active && shouldRunOnGivenFile(root) && !root.isSuppressedBy(ruleId, aliases, ruleSetId)
 
     private fun shouldRunOnGivenFile(root: KtFile) =
-        filters?.isIgnored(root.absolutePath())?.not() ?: true
+        filters?.isIgnored(root)?.not() ?: true
+
+    /**
+     * Compute severity in the priority order:
+     * - Severity of the rule
+     * - Severity of the parent ruleset
+     * - Default severity: warning
+     */
+    private fun computeSeverity(): SeverityLevel {
+        val configValue: String = valueOrNull(SEVERITY_KEY)
+            ?: ruleSetConfig.valueOrDefault(SEVERITY_KEY, "warning")
+        return enumValueOf(configValue.toUpperCase(Locale.US))
+    }
 
     /**
      * Simplified version of [Context.report] with rule defaults.
      */
     fun report(finding: Finding) {
+        (finding as? CodeSmell)?.internalSeverity = computeSeverity()
         report(finding, aliases, ruleSetId)
     }
 
@@ -75,6 +87,18 @@ abstract class Rule(
      * Simplified version of [Context.report] with rule defaults.
      */
     fun report(findings: List<Finding>) {
-        report(findings, aliases, ruleSetId)
+        findings.forEach {
+            (it as? CodeSmell)?.internalSeverity = computeSeverity()
+        }
+        report(
+            findings,
+            aliases,
+            ruleSetId
+        )
     }
 }
+
+/**
+ * The type to use when referring to rule ids giving it more context then a String would.
+ */
+typealias RuleId = String

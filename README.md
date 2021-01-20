@@ -2,7 +2,7 @@
 
 [![Join the chat at https://kotlinlang.slack.com/messages/C88E12QH4/convo/C0BQ5GZ0S-1511956674.000289/](https://img.shields.io/badge/chat-on_slack-red.svg?style=flat-square)](https://kotlinlang.slack.com/messages/C88E12QH4/convo/C0BQ5GZ0S-1511956674.000289/)
 [![Visit the website at https://arturbosch.github.io/detekt/](https://img.shields.io/badge/visit-website-red.svg?style=flat-square)](https://arturbosch.github.io/detekt/)
-[![Download](https://api.bintray.com/packages/arturbosch/code-analysis/detekt/images/download.svg) ](https://bintray.com/arturbosch/code-analysis/detekt/_latestVersion)
+[![Maven Central](https://img.shields.io/maven-central/v/io.gitlab.arturbosch.detekt/detekt-cli)](https://search.maven.org/artifact/io.gitlab.arturbosch.detekt/detekt-cli)
 [![gradle plugin](https://img.shields.io/maven-metadata/v/https/plugins.gradle.org/m2/io/gitlab/arturbosch/detekt/io.gitlab.arturbosch.detekt.gradle.plugin/maven-metadata.xml.svg?label=Gradle&style=flat-square)](https://plugins.gradle.org/plugin/io.gitlab.arturbosch.detekt)
 
 ![Pre Merge Checks](https://github.com/detekt/detekt/workflows/Pre%20Merge%20Checks/badge.svg?event=push)
@@ -28,7 +28,7 @@ It operates on the abstract syntax tree provided by the Kotlin compiler.
 - [SonarQube integration](https://github.com/detekt/sonar-kotlin)
 - Extensibility by enabling incorporation of personal rule sets, `FileProcessListener's` and `OutputReport's`
 - [IntelliJ integration](https://github.com/detekt/detekt-intellij-plugin)
-- Third party integrations for [Maven](https://github.com/Ozsie/detekt-maven-plugin), [Bazel](https://github.com/buildfoundation/bazel_rules_detekt/) and [GitHub actions](https://github.com/marketplace/actions/detekt-all)
+- Third party integrations for [Maven](https://github.com/Ozsie/detekt-maven-plugin), [Bazel](https://github.com/buildfoundation/bazel_rules_detekt/) and Github Actions ([Docker based](https://github.com/marketplace/actions/detekt-all) and [Javascript based](https://github.com/marketplace/actions/setup-detekt))
 
 ### Project Website
 
@@ -63,7 +63,7 @@ You can find [other ways to install detekt here](https://detekt.github.io/detekt
 
 #### with Gradle
 
-Gradle 5.0+ is required:
+Gradle 5.4+ is required:
 
 ```kotlin
 buildscript {
@@ -97,6 +97,7 @@ detekt {
         html.enabled = true // observe findings in your browser with structure and code snippets
         xml.enabled = true // checkstyle like format mainly for integrations like Jenkins
         txt.enabled = true // similar to the console output, contains issue signature to manually edit baseline files
+        sarif.enabled = true // SARIF integration (https://sarifweb.azurewebsites.net/) for integrations with Github
     }
 }
 
@@ -115,7 +116,7 @@ tasks {
 }
 ```
 
-See [bintray](https://bintray.com/arturbosch/code-analysis/detekt) for releases and [artifactory](https://oss.jfrog.org/artifactory/webapp/#/artifacts/browse/tree/General/oss-snapshot-local/io/gitlab/arturbosch/detekt/detekt-cli/) for snapshots.
+See [maven central](https://search.maven.org/artifact/io.gitlab.arturbosch.detekt/detekt-cli) for releases and [sonatype](https://oss.sonatype.org/#view-repositories;snapshots~browsestorage~io.gitlab.arturbosch.detekt) for snapshots.
 
 ### Adding more rule sets
 
@@ -208,6 +209,16 @@ If you contributed to detekt but your name is not in the list, please feel free 
 - [David Phillips](https://github.com/daphil19) - New rule: MandatoryBracesLoops
 - [Volkan Şahin](https://github.com/volsahin) - Documentation improvement
 - [Remco Mokveld](https://github.com/remcomokveld) - Rename Blacklist/Whitelist to more meaningful names
+- [Zachary Moore](https://github.com/zsmoore) - Rule, cli, gradle plugin, and config improvements
+- [Veyndan Stuart](https://github.com/veyndan) - New rule: UseEmptyCounterpart; Rule improvement: UselessCallOnNotNull
+- [Parimatch Tech](https://github.com/parimatchtech) - New rule: LibraryEntitiesShouldNotBePublic
+- [Chao Zhang](https://github.com/chao2zhang) - SARIF report format; Rule improvements
+- [Marcelo Hernandez](https://github.com/mhernand40) - New rule: SuspendFunWithFlowReturnType
+- [Harold Martin](https://github.com/hbmartin) - Rule improvement: ClassOrdering
+- [Roman Ivanov](https://github.com/rwqwr) - Rule improvement: ReturnFromFinally
+- [Severn Everett](https://github.com/severn-everett) - New rule: SleepInsteadOfDelay
+- [Adam Kobor](https://github.com/adamkobor) - New rule: MultilineLambdaItParameter
+- [Slawomir Czerwinski](https://github.com/sczerwinski) - Rule improvement: FunctionOnlyReturningConstant
 
 ### Mentions
 
@@ -237,7 +248,6 @@ Integrations:
 - [SonarKotlin](https://docs.sonarqube.org/display/PLUG/SonarKotlin)
 - [Codacy](https://www.codacy.com)
 - [Gradle plugin that generates ErrorProne, Findbugs, Checkstyle, PMD, CPD, Lint, Detekt & Ktlint Tasks for every subproject](https://github.com/vanniktech/gradle-code-quality-tools-plugin)
-- [GitHub Action: detekt](https://github.com/marketplace/actions/detekt-all)
 - [Java library for parsing report files from static code analysis](https://github.com/tomasbjerre/violations-lib)
 - [sputnik is a free tool for static code review and provides support for detekt](https://github.com/TouK/sputnik)
 - [Novoda Gradle Static Analysis plugin](https://github.com/novoda/gradle-static-analysis-plugin)
@@ -245,6 +255,14 @@ Integrations:
 - [Bazel plugin that wraps the Detekt CLI](https://github.com/buildfoundation/bazel_rules_detekt)
 - [Gradle plugin that helps facilitate GitHub PR checking and automatic commenting of violations](https://github.com/btkelly/gnag)
 - [Codefactor](http://codefactor.io/)
+- [detekt-hint is a plugin to detekt that provides detection of design principle violations through integration with Danger](https://github.com/mkohm/detekt-hint)
+- [GitHub Action: Detekt All](https://github.com/marketplace/actions/detekt-all)
+- [IntelliJ Platform Plugin Template](https://github.com/JetBrains/intellij-platform-plugin-template)
+- [MuseDev](https://github.com/marketplace/muse-dev)
+
+Custom rules from 3rd parties:
+
+- [cph-cachet/detekt-verify-implementation](https://github.com/cph-cachet/detekt-verify-implementation)
 - [detekt-hint is a plugin to detekt that provides detection of design principle violations through integration with Danger](https://github.com/mkohm/detekt-hint)
 
 #### Credits

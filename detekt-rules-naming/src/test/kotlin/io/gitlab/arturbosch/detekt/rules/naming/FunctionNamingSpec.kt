@@ -19,6 +19,15 @@ class FunctionNamingSpec : Spek({
             assertThat(FunctionNaming().compileAndLint(code)).isEmpty()
         }
 
+        it("allows anonymous functions") {
+            val code = """
+            val f: (Int) -> Int = fun(i: Int): Int {
+                return i + i
+            }
+        """
+            assertThat(FunctionNaming().compileAndLint(code)).isEmpty()
+        }
+
         it("ignores functions in classes matching excludeClassPattern") {
             val code = """
             class WhateverTest {
@@ -112,7 +121,7 @@ class FunctionNamingSpec : Spek({
                     SourceLocation(8, 9)
                 )
             }
-    
+
             it("Ignores annotated functions if ignoreAnnotated includes the given annotation class") {
                 val config = TestConfig(mapOf(FunctionNaming.IGNORE_ANNOTATED to listOf("Suppress")))
                 assertThat(FunctionNaming(config).compileAndLint(code)).hasSourceLocations(

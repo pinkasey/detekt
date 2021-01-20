@@ -22,7 +22,20 @@ object PreferToOverPairSyntaxSpec : Spek({
                 val pair2: Pair<Int, Int> = Pair(1, 2)
                 val pair3 = Pair(Pair(1, 2), Pair(3, 4))
             """
-            assertThat(subject.compileAndLintWithContext(env, code)).hasSize(5)
+
+            val findings = subject.compileAndLintWithContext(env, code)
+            assertThat(findings).hasSize(5)
+            assertThat(findings[0].message).endsWith("`1 to 2`")
+        }
+
+        it("reports if pair is created using a function that uses pair constructor") {
+            val code = """
+                val pair = createPair()
+                fun createPair() = Pair(1, 2)
+            """
+            val findings = subject.compileAndLintWithContext(env, code)
+            assertThat(findings).hasSize(1)
+            assertThat(findings[0].message).endsWith("`1 to 2`")
         }
 
         it("does not report if it is created using the to syntax") {
@@ -37,6 +50,14 @@ object PreferToOverPairSyntaxSpec : Spek({
                 val pair3 = Pair(Pair(1, 2), Pair(3, 4))
 
                 data class Pair<T, Z>(val int1: T, val int2: Z)
+            """
+            assertThat(subject.compileAndLintWithContext(env, code)).isEmpty()
+        }
+
+        it("does not report if pair is created using a function that uses the to syntax") {
+            val code = """
+                val pair = createPair()
+                fun createPair() = 1 to 2
             """
             assertThat(subject.compileAndLintWithContext(env, code)).isEmpty()
         }

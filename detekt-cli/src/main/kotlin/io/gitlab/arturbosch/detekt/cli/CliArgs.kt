@@ -79,11 +79,20 @@ class CliArgs {
         names = ["--report", "-r"],
         description = "Generates a report for given 'report-id' and stores it on given 'path'. " +
             "Entry should consist of: [report-id:path]. " +
-            "Available 'report-id' values: 'txt', 'xml', 'html'. " +
+            "Available 'report-id' values: 'txt', 'xml', 'html', 'sarif'. " +
             "These can also be used in combination with each other " +
             "e.g. '-r txt:reports/detekt.txt -r xml:reports/detekt.xml'"
     )
     private var reports: List<String>? = null
+
+    @Parameter(
+        names = ["--base-path", "-bp"],
+        description = "Specifies a directory as the base path." +
+            "Currently it impacts all file paths in the formatted reports. " +
+            "File paths in console output and txt report are not affected and remain as absolute paths.",
+        converter = PathConverter::class
+    )
+    var basePath: Path? = null
 
     @Parameter(
         names = ["--disable-default-rulesets", "-dd"],
@@ -100,11 +109,19 @@ class CliArgs {
 
     @Parameter(
         names = ["--fail-fast"],
-        description = "Same as 'build-upon-default-config' but explicitly running all available rules. " +
+        description = "DEPRECATED: please use '--build-upon-default-config' together with '--all-rules'. " +
+            "Same as 'build-upon-default-config' but explicitly running all available rules. " +
             "With this setting only exit code 0 is returned when the analysis does not find a single code smell. " +
             "Additional configuration files can override rule properties which includes turning off specific rules."
     )
+    @Deprecated("Please use the buildUponDefaultConfig and allRules flags instead.", ReplaceWith("allRules"))
     var failFast: Boolean = false
+
+    @Parameter(
+        names = ["--all-rules"],
+        description = "Activates all available (even unstable) rules."
+    )
+    var allRules: Boolean = false
 
     @Parameter(
         names = ["--auto-correct", "-ac"],
@@ -142,7 +159,7 @@ class CliArgs {
     var printAst: Boolean = false
 
     /*
-        The following @Parameters are used for type and symbol resolving. When additional parameters are required the
+        The following @Parameters are used for type resolution. When additional parameters are required the
         names should mirror the names found in this file (e.g. "classpath", "language-version", "jvm-target"):
         https://github.com/JetBrains/kotlin/blob/master/compiler/cli/cli-common/src/org/jetbrains/kotlin/cli/common/arguments/K2JVMCompilerArguments.kt
     */

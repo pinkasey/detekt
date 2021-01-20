@@ -15,7 +15,7 @@ class CyclomaticComplexitySpec : Spek({
         it("counts for safe navigation") {
             val code = compileContentForTest("""
                     fun test() = null as? String ?: ""
-                """.trimIndent())
+                """)
 
             val actual = CyclomaticComplexity.calculate(code)
 
@@ -25,7 +25,7 @@ class CyclomaticComplexitySpec : Spek({
         it("counts if and && and || expressions") {
             val code = compileContentForTest("""
                     fun test() = if (true || true && false) 1 else 0
-                """.trimIndent())
+                """)
 
             val actual = CyclomaticComplexity.calculate(code)
 
@@ -47,7 +47,7 @@ class CyclomaticComplexitySpec : Spek({
                         }
                         println("finished")
                     }
-                """.trimIndent())
+                """)
 
             val actual = CyclomaticComplexity.calculate(code)
 
@@ -56,12 +56,15 @@ class CyclomaticComplexitySpec : Spek({
     }
 
     describe("counts function calls used for nesting") {
-        val code = compileContentForTest("""
+
+        val code by memoized {
+            compileContentForTest("""
                     fun test(i: Int) {
                         (1..10).forEach { println(it) }
                     }
-                """.trimIndent()
-        )
+                """
+            )
+        }
 
         it("counts them by default") {
             assertThat(

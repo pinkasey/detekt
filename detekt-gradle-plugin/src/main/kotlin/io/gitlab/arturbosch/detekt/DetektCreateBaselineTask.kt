@@ -1,9 +1,10 @@
 package io.gitlab.arturbosch.detekt
 
-import io.gitlab.arturbosch.detekt.internal.configurableFileCollection
 import io.gitlab.arturbosch.detekt.invoke.AutoCorrectArgument
+import io.gitlab.arturbosch.detekt.invoke.BasePathArgument
 import io.gitlab.arturbosch.detekt.invoke.BaselineArgument
 import io.gitlab.arturbosch.detekt.invoke.BuildUponDefaultConfigArgument
+import io.gitlab.arturbosch.detekt.invoke.ClasspathArgument
 import io.gitlab.arturbosch.detekt.invoke.ConfigArgument
 import io.gitlab.arturbosch.detekt.invoke.CreateBaselineArgument
 import io.gitlab.arturbosch.detekt.invoke.DebugArgument
@@ -11,6 +12,7 @@ import io.gitlab.arturbosch.detekt.invoke.DetektInvoker
 import io.gitlab.arturbosch.detekt.invoke.DisableDefaultRuleSetArgument
 import io.gitlab.arturbosch.detekt.invoke.FailFastArgument
 import io.gitlab.arturbosch.detekt.invoke.InputArgument
+import io.gitlab.arturbosch.detekt.invoke.JvmTargetArgument
 import io.gitlab.arturbosch.detekt.invoke.ParallelArgument
 import org.gradle.api.file.ConfigurableFileCollection
 import org.gradle.api.file.RegularFileProperty
@@ -43,13 +45,17 @@ open class DetektCreateBaselineTask : SourceTask() {
     @get:InputFiles
     @get:Optional
     @PathSensitive(PathSensitivity.RELATIVE)
-    val config: ConfigurableFileCollection = project.configurableFileCollection()
+    val config: ConfigurableFileCollection = project.objects.fileCollection()
 
     @get:Classpath
-    val detektClasspath = project.configurableFileCollection()
+    val detektClasspath: ConfigurableFileCollection = project.objects.fileCollection()
 
     @get:Classpath
-    val pluginClasspath = project.configurableFileCollection()
+    val pluginClasspath: ConfigurableFileCollection = project.objects.fileCollection()
+
+    @get:Classpath
+    @get:Optional
+    val classpath: ConfigurableFileCollection = project.objects.fileCollection()
 
     @get:Console
     val debug: Property<Boolean> = project.objects.property(Boolean::class.javaObjectType)
@@ -77,12 +83,33 @@ open class DetektCreateBaselineTask : SourceTask() {
     @get:Optional
     val autoCorrect: Property<Boolean> = project.objects.property(Boolean::class.javaObjectType)
 
+    /**
+     * Respect only the file path for incremental build. Using @InputFile respects both file path and content.
+     */
+    @get:Input
+    @get:Optional
+    internal val basePathProp: Property<String> = project.objects.property(String::class.java)
+    var basePath: String
+        @Internal
+        get() = basePathProp.get()
+        set(value) = basePathProp.set(value)
+
+    @get:Input
+    @get:Optional
+    internal val jvmTargetProp: Property<String> = project.objects.property(String::class.javaObjectType)
+    var jvmTarget: String
+        @Internal
+        get() = jvmTargetProp.get()
+        set(value) = jvmTargetProp.set(value)
+
     private val invoker: DetektInvoker = DetektInvoker.create(project)
 
     @TaskAction
     fun baseline() {
         val arguments = mutableListOf(
             CreateBaselineArgument,
+            ClasspathArgument(classpath),
+            JvmTargetArgument(jvmTargetProp.orNull),
             BaselineArgument(baseline.get()),
             InputArgument(source),
             ConfigArgument(config),
@@ -91,6 +118,7 @@ open class DetektCreateBaselineTask : SourceTask() {
             BuildUponDefaultConfigArgument(buildUponDefaultConfig.getOrElse(false)),
             FailFastArgument(failFast.getOrElse(false)),
             AutoCorrectArgument(autoCorrect.getOrElse(false)),
+            BasePathArgument(basePathProp.orNull),
             DisableDefaultRuleSetArgument(disableDefaultRuleSets.getOrElse(false))
         )
 

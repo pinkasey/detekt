@@ -1,8 +1,8 @@
 package io.gitlab.arturbosch.detekt.formatting
 
-import com.pinterest.ktlint.core.EditorConfig
 import com.pinterest.ktlint.core.KtLint
-import io.github.detekt.psi.absolutePath
+import io.github.detekt.psi.fileName
+import io.github.detekt.psi.toFilePath
 import io.gitlab.arturbosch.detekt.api.Config
 import io.gitlab.arturbosch.detekt.api.CorrectableCodeSmell
 import io.gitlab.arturbosch.detekt.api.Debt
@@ -14,10 +14,9 @@ import io.gitlab.arturbosch.detekt.api.Severity
 import io.gitlab.arturbosch.detekt.api.SingleAssign
 import io.gitlab.arturbosch.detekt.api.SourceLocation
 import io.gitlab.arturbosch.detekt.api.TextLocation
+import org.ec4j.core.model.Property
 import org.jetbrains.kotlin.com.intellij.lang.ASTNode
 import org.jetbrains.kotlin.com.intellij.lang.FileASTNode
-import org.jetbrains.kotlin.com.intellij.psi.PsiElement
-import org.jetbrains.kotlin.com.intellij.testFramework.LightVirtualFile
 import org.jetbrains.kotlin.psi.KtFile
 import org.jetbrains.kotlin.psi.psiUtil.endOffset
 
@@ -27,9 +26,6 @@ import org.jetbrains.kotlin.psi.psiUtil.endOffset
 abstract class FormattingRule(config: Config) : Rule(config) {
 
     abstract val wrapping: com.pinterest.ktlint.core.Rule
-
-    protected fun issueFor(description: String) =
-        Issue(javaClass.simpleName, Severity.Style, description, Debt.FIVE_MINS)
 
     /**
      * Should the android style guide be enforced?
@@ -41,18 +37,33 @@ abstract class FormattingRule(config: Config) : Rule(config) {
     private var positionByOffset: (offset: Int) -> Pair<Int, Int> by SingleAssign()
     private var root: KtFile by SingleAssign()
 
+    protected fun issueFor(description: String) =
+        Issue(javaClass.simpleName, Severity.Style, description, Debt.FIVE_MINS)
+
     override fun visit(root: KtFile) {
         this.root = root
         root.node.putUserData(KtLint.ANDROID_USER_DATA_KEY, isAndroid)
-        positionByOffset = KtLint.calculateLineColByOffset(KtLint.normalizeText(root.text))
-        editorConfigUpdater()?.let { updateFunc ->
+        positionByOffset = KtLintLineColCalculator
+            .calculateLineColByOffset(KtLintLineColCalculator.normalizeText(root.text))
+        overrideEditorConfig()?.let { overrides ->
             val oldEditorConfig = root.node.getUserData(KtLint.EDITOR_CONFIG_USER_DATA_KEY)
-            root.node.putUserData(KtLint.EDITOR_CONFIG_USER_DATA_KEY, updateFunc(oldEditorConfig))
+            root.node.putUserData(KtLint.EDITOR_CONFIG_USER_DATA_KEY, oldEditorConfig.copy(overrides))
         }
-        root.node.putUserData(KtLint.FILE_PATH_USER_DATA_KEY, root.absolutePath().toString())
+        overrideEditorConfigProperties()?.let { overrides ->
+            val oldUserData = root.node.getUserData(KtLint.EDITOR_CONFIG_PROPERTIES_USER_DATA_KEY)
+            val newUserData = if (oldUserData != null) {
+                oldUserData + overrides
+            } else {
+                overrides
+            }
+            root.node.putUserData(KtLint.EDITOR_CONFIG_PROPERTIES_USER_DATA_KEY, newUserData)
+        }
+        root.node.putUserData(KtLint.FILE_PATH_USER_DATA_KEY, root.name)
     }
 
-    open fun editorConfigUpdater(): ((oldEditorConfig: EditorConfig?) -> EditorConfig)? = null
+    open fun overrideEditorConfig(): Map<String, Any>? = null
+
+    open fun overrideEditorConfigProperties(): Map<String, Property>? = null
 
     fun apply(node: ASTNode) {
         if (ruleShouldOnlyRunOnFileNode(node)) {
@@ -63,8 +74,7 @@ abstract class FormattingRule(config: Config) : Rule(config) {
             val location = Location(
                 SourceLocation(line, column),
                 TextLocation(node.startOffset, node.psi.endOffset),
-                "($line, $column)",
-                root.originalFilePath() ?: root.containingFile.name
+                root.toFilePath()
             )
 
             // Nodes reported by 'NoConsecutiveBlankLines' are dangling whitespace nodes which means they have
@@ -75,14 +85,11 @@ abstract class FormattingRule(config: Config) : Rule(config) {
                 .takeIf { it.isNotEmpty() }
                 ?.plus(".")
                 ?: ""
-            val entity = Entity("", "", "$packageName${root.name}:$line", location, root)
+            val entity = Entity("", "$packageName${root.fileName}:$line", location, root)
             report(CorrectableCodeSmell(issue, entity, message, autoCorrectEnabled = autoCorrect))
         }
     }
 
     private fun ruleShouldOnlyRunOnFileNode(node: ASTNode) =
         wrapping is com.pinterest.ktlint.core.Rule.Modifier.RestrictToRoot && node !is FileASTNode
-
-    private fun PsiElement.originalFilePath() =
-        (this.containingFile.viewProvider.virtualFile as? LightVirtualFile)?.originalFile?.name
 }

@@ -34,13 +34,10 @@ inline fun MarkdownContent.h3(heading: () -> String) = append("### ${heading()}\
 inline fun MarkdownContent.h4(heading: () -> String) = append("#### ${heading()}\n")
 
 inline fun MarkdownContent.orderedList(sectionList: () -> List<String>) {
-    for (i in 0 until sectionList().size) {
+    for (i in sectionList().indices) {
         append("${i + 1}. ${sectionList()[i]}")
     }
 }
-
-inline fun MarkdownContent.referenceToHeading(reference: () -> String) =
-        "[${reference()}](#${reference().replace(' ', '-').toLowerCase()})"
 
 inline fun MarkdownContent.code(code: () -> String) = "``${code()}``"
 inline fun MarkdownContent.codeBlock(code: () -> String) = "```kotlin\n${code()}\n```"

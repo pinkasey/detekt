@@ -1,6 +1,7 @@
 package io.github.detekt.report.html
 
 import io.github.detekt.metrics.ComplexityReportGenerator
+import io.github.detekt.psi.toUnifiedString
 import io.gitlab.arturbosch.detekt.api.Detektion
 import io.gitlab.arturbosch.detekt.api.Finding
 import io.gitlab.arturbosch.detekt.api.OutputReport
@@ -36,7 +37,8 @@ private const val PLACEHOLDER_VERSION = "@@@version@@@"
 private const val PLACEHOLDER_DATE = "@@@date@@@"
 
 /**
- * Generates a HTML report containing rule violations and metrics.
+ * Contains rule violations and metrics formatted in a human friendly way, so that it can be inspected in a web browser.
+ * See: https://detekt.github.io/detekt/configurations.html#output-reports
  */
 class HtmlOutputReport : OutputReport() {
 
@@ -131,8 +133,9 @@ class HtmlOutputReport : OutputReport() {
     }
 
     private fun FlowContent.renderFinding(finding: Finding) {
+        val filePath = finding.location.filePath.relativePath ?: finding.location.filePath.absolutePath
         span("location") {
-            text("${finding.file}:${finding.location.source.line}:${finding.location.source.column}")
+            text("${filePath.toUnifiedString()}:${finding.location.source.line}:${finding.location.source.column}")
         }
 
         if (finding.message.isNotEmpty()) {

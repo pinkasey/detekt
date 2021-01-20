@@ -40,9 +40,9 @@ object RuleSetPagePrinter : DocumentationPrinter<RuleSetPage> {
                 paragraph { "TODO: Specify description" }
             }
 
-            if (rule.severity.isNotEmpty()) {
+            if (rule.requiresTypeResolution) {
                 paragraph {
-                    "${bold { "Severity" }}: ${rule.severity}"
+                    bold { "Requires Type Resolution" }
                 }
             }
 

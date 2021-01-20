@@ -9,17 +9,9 @@ import io.gitlab.arturbosch.detekt.api.Rule
 import io.gitlab.arturbosch.detekt.api.Severity
 import io.gitlab.arturbosch.detekt.api.internal.valueOrDefaultCommaSeparated
 import io.gitlab.arturbosch.detekt.api.simplePatternToRegex
-import org.jetbrains.kotlin.com.intellij.psi.PsiComment
-import org.jetbrains.kotlin.com.intellij.psi.PsiElement
-import org.jetbrains.kotlin.com.intellij.psi.PsiWhiteSpace
-import org.jetbrains.kotlin.com.intellij.psi.impl.source.tree.LeafPsiElement
-import org.jetbrains.kotlin.lexer.KtSingleValueToken
-import org.jetbrains.kotlin.psi.KtBlockExpression
 import org.jetbrains.kotlin.psi.KtCallExpression
-import org.jetbrains.kotlin.psi.KtDotQualifiedExpression
-import org.jetbrains.kotlin.psi.psiUtil.getParentOfType
-import org.jetbrains.kotlin.psi.psiUtil.lastBlockStatementOrThis
 import org.jetbrains.kotlin.resolve.BindingContext
+import org.jetbrains.kotlin.resolve.bindingContextUtil.isUsedAsExpression
 import org.jetbrains.kotlin.resolve.calls.callUtil.getResolvedCall
 import org.jetbrains.kotlin.types.typeUtil.isUnit
 
@@ -42,6 +34,8 @@ import org.jetbrains.kotlin.types.typeUtil.isUnit
  *
  * @configuration restrictToAnnotatedMethods - if the rule should check only annotated methods. (default: `true`)
  * @configuration returnValueAnnotations - List of glob patterns to be used as inspection annotation (default: `['*.CheckReturnValue', '*.CheckResult']`)
+ *
+ * @requiresTypeResolution
  */
 class IgnoredReturnValue(config: Config = Config.empty) : Rule(config) {
 
@@ -59,7 +53,7 @@ class IgnoredReturnValue(config: Config = Config.empty) : Rule(config) {
             .distinct()
             .map { it.simplePatternToRegex() }
 
-    private val restrictToAnnotatedMethods = valueOrDefault(
+    private val restrictToAnnotatedMethods: Boolean = valueOrDefault(
         RESTRICT_TO_ANNOTATED_METHODS,
         DEFAULT_RESTRICT_TO_ANNOTATED_METHODS
     )
@@ -67,39 +61,27 @@ class IgnoredReturnValue(config: Config = Config.empty) : Rule(config) {
     @Suppress("ReturnCount")
     override fun visitCallExpression(expression: KtCallExpression) {
         super.visitCallExpression(expression)
-
         if (bindingContext == BindingContext.EMPTY) return
-        val resolvedCall = expression.getResolvedCall(bindingContext) ?: return
-        val returnType = resolvedCall.resultingDescriptor.returnType ?: return
-        val annotations = resolvedCall.resultingDescriptor.annotations.mapNotNull { it.fqName?.asString() }
 
-        if (returnType.isUnit()) {
-            return
-        }
-        if (restrictToAnnotatedMethods &&
-                annotations.none { annotation -> annotationsRegexes.any { it.matches(annotation) } }) {
-            return
-        }
+        if (expression.isUsedAsExpression(bindingContext)) return
 
-        val elementsToInspect = mutableListOf<PsiElement>(expression)
-        val parent = expression.parent
-
-        if (parent is KtDotQualifiedExpression) {
-            elementsToInspect += parent.getParentOfType<KtDotQualifiedExpression>(true) ?: parent
-        }
-        if (parent is KtBlockExpression && parent.lastBlockStatementOrThis() == expression) {
-            elementsToInspect -= expression
+        val resultingDescriptor = expression.getResolvedCall(bindingContext)?.resultingDescriptor ?: return
+        if (resultingDescriptor.returnType?.isUnit() == true) return
+        if (restrictToAnnotatedMethods) {
+            val annotations = resultingDescriptor.annotations.mapNotNull { it.fqName?.asString() }
+            if (annotations.none { annotation -> annotationsRegexes.any { it.matches(annotation) } }) {
+                return
+            }
         }
 
-        if (elementsToInspect.any(PsiElement::isIsolated)) {
-            report(
-                    CodeSmell(
-                            issue,
-                            Entity.from(expression),
-                            message = "The call ${expression.text} is returning a value that is ignored."
-                    )
+        val messageText = expression.calleeExpression?.text ?: expression.text
+        report(
+            CodeSmell(
+                issue,
+                Entity.from(expression),
+                message = "The call $messageText is returning a value that is ignored."
             )
-        }
+        )
     }
 
     companion object {
@@ -109,21 +91,3 @@ class IgnoredReturnValue(config: Config = Config.empty) : Rule(config) {
         val DEFAULT_RETURN_VALUE_ANNOTATIONS = listOf("*.CheckReturnValue", "*.CheckResult")
     }
 }
-
-private val PsiElement.isIsolated: Boolean
-    get() =
-        true == this.prevSibling?.isAnIsolationElement && true == this.nextSibling?.isAnIsolationElement
-
-private val PsiElement?.isAnIsolationElement: Boolean
-    get() {
-        if (this is PsiWhiteSpace || this is PsiComment) {
-            return true
-        }
-        if (this is LeafPsiElement && this.elementType is KtSingleValueToken) {
-            val token = (this.elementType as KtSingleValueToken)
-            if (token.value == ";") {
-                return true
-            }
-        }
-        return false
-    }

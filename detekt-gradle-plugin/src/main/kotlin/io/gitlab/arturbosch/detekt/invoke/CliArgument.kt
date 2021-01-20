@@ -3,6 +3,7 @@ package io.gitlab.arturbosch.detekt.invoke
 import io.gitlab.arturbosch.detekt.extensions.DetektReportType
 import org.gradle.api.file.FileCollection
 import org.gradle.api.file.RegularFile
+import java.io.File
 
 private const val DEBUG_PARAMETER = "--debug"
 private const val INPUT_PARAMETER = "--input"
@@ -19,6 +20,7 @@ private const val CREATE_BASELINE_PARAMETER = "--create-baseline"
 private const val CLASSPATH_PARAMETER = "--classpath"
 private const val LANGUAGE_VERSION_PARAMETER = "--language-version"
 private const val JVM_TARGET_PARAMETER = "--jvm-target"
+private const val BASE_PATH_PARAMETER = "--base-path"
 
 internal sealed class CliArgument {
     abstract fun toArgument(): List<String>
@@ -39,7 +41,7 @@ internal data class InputArgument(val fileCollection: FileCollection) : CliArgum
 internal data class ClasspathArgument(val fileCollection: FileCollection) : CliArgument() {
     override fun toArgument() = if (!fileCollection.isEmpty) listOf(
         CLASSPATH_PARAMETER,
-        fileCollection.joinToString(";") { it.absolutePath }) else emptyList()
+        fileCollection.joinToString(File.pathSeparator) { it.absolutePath }) else emptyList()
 }
 
 internal data class LanguageVersionArgument(val languageVersion: String?) : CliArgument() {
@@ -63,11 +65,19 @@ internal data class CustomReportArgument(val reportId: String, val file: Regular
     override fun toArgument() = listOf(REPORT_PARAMETER, "$reportId:${file.asFile.absolutePath}")
 }
 
-internal data class ConfigArgument(val config: FileCollection) : CliArgument() {
-    override fun toArgument() = if (config.isEmpty) {
+internal data class BasePathArgument(val basePath: String?) : CliArgument() {
+    override fun toArgument() = basePath?.let { listOf(BASE_PATH_PARAMETER, it) } ?: emptyList()
+}
+
+internal data class ConfigArgument(val files: Collection<File>) : CliArgument() {
+
+    constructor(configFile: File) : this(listOf(configFile))
+    constructor(config: FileCollection) : this(config.files)
+
+    override fun toArgument() = if (files.isEmpty()) {
         emptyList()
     } else {
-        listOf(CONFIG_PARAMETER, config.joinToString(",") { it.absolutePath })
+        listOf(CONFIG_PARAMETER, files.joinToString(",") { it.absolutePath })
     }
 }
 

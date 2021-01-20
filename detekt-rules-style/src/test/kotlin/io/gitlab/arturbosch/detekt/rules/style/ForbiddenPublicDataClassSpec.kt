@@ -14,11 +14,11 @@ class ForbiddenPublicDataClassSpec : Spek({
                 data class C(val a: String)                
             """
 
-            assertThat(ForbiddenPublicDataClass().compileAndLint(code)).isEmpty()
+            assertThat(ForbiddenPublicDataClass(TestConfig(Config.EXCLUDES_KEY to "**")).compileAndLint(code)).isEmpty()
         }
 
         val subject by memoized {
-            ForbiddenPublicDataClass(TestConfig(Config.INCLUDES_KEY to "*.kt"))
+            ForbiddenPublicDataClass()
         }
 
         it("public data class should fail") {
@@ -125,7 +125,7 @@ class ForbiddenPublicDataClassSpec : Spek({
 
         it("public data class inside a random package should fail") {
             val code = """
-                package com.example
+                package com.random
 
                 data class C(val a: String)                
             """
@@ -140,20 +140,18 @@ class ForbiddenPublicDataClassSpec : Spek({
                 data class C(val a: String)                
             """
 
-            val config = TestConfig(
-                "ignorePackages" to listOf("*.hello", "com.example"),
-                Config.INCLUDES_KEY to "*.kt")
+            val config = TestConfig("ignorePackages" to listOf("*.hello", "com.example"))
             assertThat(ForbiddenPublicDataClass(config).compileAndLint(code)).isEmpty()
         }
 
         it("public data class inside an ignored package should pass config as string") {
             val code = """
-                package com.example
+                package org.example
 
                 data class C(val a: String)                
             """
 
-            val config = TestConfig("ignorePackages" to "*.hello,com.example", Config.INCLUDES_KEY to "*.kt")
+            val config = TestConfig("ignorePackages" to "*.hello,org.example")
             assertThat(ForbiddenPublicDataClass(config).compileAndLint(code)).isEmpty()
         }
     }
